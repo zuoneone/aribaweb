@@ -29,7 +29,6 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -709,63 +708,48 @@ public class AWJarWalker
     {
         if (_AnnotationListeners == null) return;
         visitBytecode(iter, filename,
-            new ClassVisitor(Opcodes.ASM6) {
+            new Visitor() {
             String _classNamePath;
 
-            @Override
-            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces)
+            public void visit(int i, int i1, String s, String s1, String s2, String[] strings)
             {
-                // System.out.println(" *** CLASS " + name);
-                _classNamePath = name;
+                // System.out.println(" *** CLASS " + s);
+                _classNamePath = s;
             }
 
-            @Override
-            public AnnotationVisitor visitAnnotation(String desc, boolean visible)
+            public AnnotationVisitor visitAnnotation(String s, boolean b)
             {
                 String className = _classNamePath.replace("/", ".");
-                // System.out.println("   --  Class: " + className + " - Annotation.. " + desc);
-                notifyAnnotationListeners(className, desc);
-                return null;
+                // System.out.println("   --  Class: " + className + " - Annotation.. " + s);
+                notifyAnnotationListeners(className, s);
+                return this;
             }
 
-            @Override
-            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value)
+            public FieldVisitor visitField(int i, String s, String s1, String s2, Object o)
             {
-                // System.out.println("   --  Field " + name);
-                return new FieldVisitor(Opcodes.ASM6) {
-                    @Override
-                    public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-                        String className = _classNamePath.replace("/", ".");
-                        notifyAnnotationListeners(className, desc);
-                        return null;
-                    }
-                };
+                // System.out.println("   --  Field " + s);
+                return this;
             }
 
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
+            public MethodVisitor visitMethod(
+                final int access,
+                final String name,
+                final String desc,
+                final String signature,
+                final String[] exceptions)
             {
                 // System.out.println("   --  Method " + name);
-                return new MethodVisitor(Opcodes.ASM6) {
-                    @Override
-                    public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-                        String className = _classNamePath.replace("/", ".");
-                        notifyAnnotationListeners(className, desc);
-                        return null;
-                    }
+                return this;
+            }
 
-                    @Override
-                    public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
-                        String className = _classNamePath.replace("/", ".");
-                        notifyAnnotationListeners(className, desc);
-                        return null;
-                    }
-                };
+            public void visitEnd()
+            {
+
             }
         });
     }
     
-    static void visitBytecode (StreamIterator iter, String filename, ClassVisitor visitor)
+    static void visitBytecode (StreamIterator iter, String filename, Visitor visitor)
     {
 
         try {
@@ -777,7 +761,7 @@ public class AWJarWalker
         }
     }
 
-    public static void scanClasses (Filter jarfilter, Filter jarEntryFilter, ClassVisitor visitor)
+    public static void scanClasses (Filter jarfilter, Filter jarEntryFilter, Visitor visitor)
         throws IOException
     {
         URL[] urls = AWJarWalker.findClassPaths();
@@ -795,11 +779,176 @@ public class AWJarWalker
         }
     }
     
-    public static class Visitor extends ClassVisitor
+    public static class Visitor implements ClassVisitor, MethodVisitor, FieldVisitor, AnnotationVisitor
     {
-        public Visitor()
+        public void visit(int i, int i1, String s, String s1, String s2, String[] strings)
         {
-            super(Opcodes.ASM6);
+
+        }
+
+        public void visitSource(String s, String s1)
+        {
+
+        }
+
+        public void visitOuterClass(String s, String s1, String s2)
+        {
+
+        }
+
+        public AnnotationVisitor visitAnnotation(String s, boolean b)
+        {
+            return this;
+        }
+
+        public void visitAttribute(Attribute attribute)
+        {
+
+        }
+
+        public void visitInnerClass(String s, String s1, String s2, int i)
+        {
+
+        }
+
+        public FieldVisitor visitField(int i, String s, String s1, String s2, Object o)
+        {
+            return this;
+        }
+
+        public MethodVisitor visitMethod(int i, String s, String s1, String s2, String[] strings)
+        {
+            return this;
+        }
+
+        public void visitEnd()
+        {
+
+        }
+
+        public AnnotationVisitor visitAnnotationDefault()
+        {
+            return this;
+        }
+
+        public AnnotationVisitor visitParameterAnnotation(int i, String s, boolean b)
+        {
+            return this;
+        }
+
+        public void visitCode()
+        {
+
+        }
+
+        public void visitFrame(int i, int i1, Object[] objects, int i2, Object[] objects1)
+        {
+
+        }
+
+        public void visitInsn(int i)
+        {
+
+        }
+
+        public void visitIntInsn(int i, int i1)
+        {
+
+        }
+
+        public void visitVarInsn(int i, int i1)
+        {
+
+        }
+
+        public void visitTypeInsn(int i, String s)
+        {
+
+        }
+
+        public void visitFieldInsn(int i, String s, String s1, String s2)
+        {
+
+        }
+
+        public void visitMethodInsn(int i, String s, String s1, String s2)
+        {
+
+        }
+
+        public void visitJumpInsn(int i, Label label)
+        {
+
+        }
+
+        public void visitLabel(Label label)
+        {
+
+        }
+
+        public void visitLdcInsn(Object o)
+        {
+
+        }
+
+        public void visitIincInsn(int i, int i1)
+        {
+
+        }
+
+        public void visitTableSwitchInsn(int i, int i1, Label label, Label[] labels)
+        {
+
+        }
+
+        public void visitLookupSwitchInsn(Label label, int[] ints, Label[] labels)
+        {
+
+        }
+
+        public void visitMultiANewArrayInsn(String s, int i)
+        {
+
+        }
+
+        public void visitTryCatchBlock(Label label, Label label1, Label label2, String s)
+        {
+
+        }
+
+        public void visitLocalVariable(String s, String s1, String s2, Label label, Label label1, int i)
+        {
+
+        }
+
+        public void visitLineNumber(int i, Label label)
+        {
+
+        }
+
+        public void visitMaxs(int i, int i1)
+        {
+
+        }
+
+        public void visit(String s, Object o)
+        {
+
+        }
+
+        public void visitEnum(String s, String s1, String s2)
+        {
+
+        }
+
+        public AnnotationVisitor visitAnnotation(String s, String s1)
+        {
+            return this;
+        }
+
+        public AnnotationVisitor visitArray(String s)
+        {
+            return this;
         }
     }
 }
