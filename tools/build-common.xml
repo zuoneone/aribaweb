@@ -1061,7 +1061,11 @@
             <echo message="Connect via ${app.url}"/>
             <property name="tomcat.jvmarg.extra1" value="-Dbogus1=n"/>
             <property name="tomcat.jvmarg.extra2" value="-Dbogus2=n"/>
-            <java jar="${catalina.home.dir}/bin/bootstrap.jar" fork="true">
+            <java classname="org.apache.catalina.startup.Bootstrap" fork="true">
+     		   <classpath>
+                    <pathelement location="${catalina.home.dir}/bin/bootstrap.jar"/>
+					<pathelement location="${catalina.home.dir}/bin/tomcat-juli.jar"/>
+                </classpath>
                 <env key="CATALINA_HOME" value="${catalina.home.dir}"/>
                 <env key="ARIBAWEB_HOME" value="${dist.root.dir}"/>
                 <!-- <env key="ARIBA_DEMOSHELL_HOME" value="${demoshell.home}"/> -->
