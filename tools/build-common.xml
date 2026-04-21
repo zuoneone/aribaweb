@@ -1062,21 +1062,12 @@
             <property name="tomcat.jvmarg.extra1" value="-Dbogus1=n"/>
             <property name="tomcat.jvmarg.extra2" value="-Dbogus2=n"/>
             <java classname="org.apache.catalina.startup.Bootstrap" fork="true">
-     		   <classpath>
+                <classpath>
                     <pathelement location="${catalina.home.dir}/bin/bootstrap.jar"/>
-					<pathelement location="${catalina.home.dir}/bin/tomcat-juli.jar"/>
-                    <pathelement location="${lib.dir}/asm.jar"/>
-                    <pathelement location="${lib.dir}/activation.jar"/>
-                    <pathelement location="${lib.dir}/bcel.jar"/>
-                    <pathelement location="${lib.dir}/core-renderer.jar"/>
-                    <pathelement location="${lib.dir}/groovy-all.jar"/>
-                    <pathelement location="${lib.dir}/iText-2.0.8.jar"/>
-                    <pathelement location="${lib.dir}/jakarta-oro.jar"/> 
-                    <pathelement location="${lib.dir}/mail.jar"/>
-                   <pathelement location="${lib.dir}/markdownj.jar"/>
-                    <pathelement location="${lib.dir}/tidy.jar"/>
-                    <pathelement location="${lib.dir}/log4j-1.2.15.jar"/>
+                    <pathelement location="${catalina.home.dir}/bin/tomcat-juli.jar"/>
                 </classpath>
+                <jvmarg value="-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager"/>
+                <jvmarg value="-Djava.util.logging.config.file=${catalina.base.dir}/conf/logging.properties"/>
                 <env key="CATALINA_HOME" value="${catalina.home.dir}"/>
                 <env key="ARIBAWEB_HOME" value="${dist.root.dir}"/>
                 <!-- <env key="ARIBA_DEMOSHELL_HOME" value="${demoshell.home}"/> -->
