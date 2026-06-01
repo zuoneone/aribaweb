@@ -12,12 +12,14 @@ set DIRNAME=%~dp0
 if "%DIRNAME%" == "" set DIRNAME=.\
 
 @rem Define AW_HOME if not set
-if not "%AW_HOME%" == "" goto check_ANT_HOME
+if not "%AW_HOME%" == "" goto start_app
 set AW_HOME=%DIRNAME%..
 echo Setting AW_HOME.  To support running the AW command more easily, to this:
 echo     set AW_HOME=%AW_HOME%
 echo     set PATH=%%AW_HOME%%;%%PATH%%
 echo.
+
+:start_app
 
 echo Starting up demo app...
 %AW_HOME%\bin\aw.bat ant -emacs -logger org.apache.tools.ant.NoBannerLogger -f %AW_HOME%\build.xml tomcat-build-browse

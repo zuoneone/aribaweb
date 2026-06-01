@@ -32,25 +32,30 @@ echo     set PATH=%%AW_HOME%%\bin;%%PATH%%
 echo.
 
 :check_JAVA_HOME
-if "%AW_JAVA_HOME%" == "" set AW_JAVA_HOME=%JAVA_HOME%
-if "%AW_JAVA_HOME%" == "" set AW_JAVA_HOME=c:\jdk17018
+if "%JAVA_HOME%" == "" (
+    echo set up JAVA_HOME first
+    goto end
+)
+set AW_JAVA_HOME=%JAVA_HOME%
 set JAVA_HOME=%AW_JAVA_HOME%
 set PATH=%JAVA_HOME%\bin;%PATH%
 echo Setting JAVA_HOME to: %JAVA_HOME%
 
 :check_ANT_HOME
-if not "%ANT_HOME%" == "" goto check_ANT_OPTS
+if not "%ANT_HOME%" == "" goto set_ant_path
 if exist "%AW_HOME%\tools\ant" (
     set ANT_HOME=%AW_HOME%\tools\ant
 ) else (
-    set ANT_HOME=C:\apache-ant-1.10.15
+    echo ant is not setup, set it first
+    goto end
 )
+:set_ant_path
 set PATH=%ANT_HOME%\bin;%PATH%
 echo Setting ANT_HOME to: %ANT_HOME%
 
 :check_ANT_OPTS
 set JAVA_VERSION_STR=
-for /f "tokens=3" %%g in ('"%JAVA_HOME%\bin\java.exe" -version 2^>^&1 ^| findstr /i "version"') do (
+for /f "tokens=3" %%g in ('%JAVA_HOME%\bin\java.exe -version 2^>^&1 ^| findstr /i "version"') do (
     set JAVA_VERSION_STR=%%g
 )
 if not "%JAVA_VERSION_STR%" == "" (
