@@ -51,6 +51,8 @@ public class AWGenericException extends WrapperRuntimeException
         _FilterClasses.add("ariba.util.fieldvalue.FieldValue_Object");
         _FilterClasses.add("sun.reflect.NativeMethodAccessorImpl");
         _FilterClasses.add("sun.reflect.DelegatingMethodAccessorImpl");
+        _FilterClasses.add("jdk.internal.reflect.NativeMethodAccessorImpl");
+        _FilterClasses.add("jdk.internal.reflect.DelegatingMethodAccessorImpl");
     }
     private String _additionalMessage;
     private List<AWBaseElement> _componentStack = ListUtil.list();

@@ -32,19 +32,24 @@ echo     set PATH=%%AW_HOME%%\bin;%%PATH%%
 echo.
 
 :check_JAVA_HOME
-if "%AW_JAVA_HOME%" == "" set AW_JAVA_HOME=C:\jdk-17.0.12
+if "%AW_JAVA_HOME%" == "" set AW_JAVA_HOME=%JAVA_HOME%
+if "%AW_JAVA_HOME%" == "" set AW_JAVA_HOME=c:\jdk17018
 set JAVA_HOME=%AW_JAVA_HOME%
 set PATH=%JAVA_HOME%\bin;%PATH%
 echo Setting JAVA_HOME to: %JAVA_HOME%
 
 :check_ANT_HOME
 if not "%ANT_HOME%" == "" goto check_ANT_OPTS
-set ANT_HOME=%AW_HOME%\tools\ant
+if exist "%AW_HOME%\tools\ant" (
+    set ANT_HOME=%AW_HOME%\tools\ant
+) else (
+    set ANT_HOME=C:\apache-ant-1.10.15
+)
 set PATH=%ANT_HOME%\bin;%PATH%
 echo Setting ANT_HOME to: %ANT_HOME%
 
 :check_ANT_OPTS
-set ANT_OPTS=-Xmx400m --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED
+set ANT_OPTS=-Xmx400m --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED
 
 :init
 @rem Get command-line arguments, handling Windowz variants

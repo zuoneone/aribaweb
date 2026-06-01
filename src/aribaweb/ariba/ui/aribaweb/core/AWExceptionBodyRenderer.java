@@ -138,6 +138,7 @@ public class AWExceptionBodyRenderer extends AWComponent
                  || filename.startsWith("groovy.lang.Meta")
                  || filename.startsWith("ariba.util.fieldvalue.Reflection")
                  || filename.startsWith("sun.reflect.")
+                 || filename.startsWith("jdk.internal.reflect.")
                  || filename.startsWith("java.lang.reflect.")
                );
     }

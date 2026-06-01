@@ -756,7 +756,7 @@ public class AWJarWalker
             InputStream is = iter.getInputStream();
             ClassReader cr = new ClassReader(is);
             cr.accept(visitor, 0);
-        } catch (IOException e) {
+        } catch (Exception e) {
             // skip?
         }
     }
