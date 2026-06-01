@@ -1019,13 +1019,12 @@
                     destdir="@{destdir}"
                     excludes="${javac.excludes}">
                 <nested/>
-                <!-- FIXME: Groovy 1.6 (RC3) breaks expression is embedded javac tag, so need to hard code! -->
-                <!-- see http://jira.codehaus.org/browse/GROOVY-3223 -->
+                <!-- Groovy 1.6 passes property expressions through literally inside this nested javac tag. -->
                 <javac
                         encoding="utf-8"
                         debug="on"
-                        source="1.5"
-                        target="1.5"/>
+                        source="1.8"
+                        target="1.8"/>
             </groovyc>
         </sequential>
     </macrodef>
@@ -1081,6 +1080,10 @@
                 </classpath>
                 <jvmarg value="-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager"/>
                 <jvmarg value="-Djava.util.logging.config.file=${catalina.base.dir}/conf/logging.properties"/>
+                <jvmarg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
+                <jvmarg value="--add-opens=java.base/java.util=ALL-UNNAMED"/>
+                <jvmarg value="--add-opens=java.base/java.io=ALL-UNNAMED"/>
+                <jvmarg value="--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"/>
                 <env key="CATALINA_HOME" value="${catalina.home.dir}"/>
                 <env key="ARIBAWEB_HOME" value="${dist.root.dir}"/>
                 <!-- <env key="ARIBA_DEMOSHELL_HOME" value="${demoshell.home}"/> -->
