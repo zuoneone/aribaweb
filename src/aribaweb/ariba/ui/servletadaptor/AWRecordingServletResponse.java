@@ -17,6 +17,7 @@
 package ariba.ui.servletadaptor;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletResponseWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -166,6 +167,16 @@ public final class AWRecordingServletResponse extends HttpServletResponseWrapper
         {
             _original.flush();
             _recording.flush();
+        }
+
+        public boolean isReady ()
+        {
+            return _original.isReady();
+        }
+
+        public void setWriteListener (WriteListener writeListener)
+        {
+            _original.setWriteListener(writeListener);
         }
     }
 }

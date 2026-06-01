@@ -49,6 +49,7 @@
     <!--- Set certain vars from Ariba internal environment defaults -->
     <property name="env.ARIBA_INSTALL_ROOT" value="NOT_SET"/>
     <property name="env.ARIBA_BUILD_ROOT" value="NOT_SET"/>
+    <property name="env.CATALINA_HOME" value="NOT_SET"/>
 
     <condition property="lib-internal.dir"
                value="${env.ARIBA_INSTALL_ROOT}/internal/classes">
@@ -151,6 +152,16 @@
     <property name="site.dir" location="${dist.root.dir}/site"/>
     <property name="tools.dir" location="${dist.root.dir}/tools"/>
     <property name="awreload.jar" location="${ariba.jars.dir}/ariba.awreload-jmti.jar"/>
+    <condition property="servlet.api.jar" value="${env.CATALINA_HOME}/lib/servlet-api.jar">
+        <and>
+            <not><equals arg1="${env.CATALINA_HOME}" arg2="NOT_SET"/></not>
+            <available file="${env.CATALINA_HOME}/lib/servlet-api.jar"/>
+        </and>
+    </condition>
+    <available file="${tools.dir}/tomcat/lib/servlet-api.jar"
+               property="servlet.api.jar"
+               value="${tools.dir}/tomcat/lib/servlet-api.jar"/>
+    <property name="servlet.api.jar" location="${lib-build.dir}/javax.servlet.zip"/>
 
     <!--- AW Source Search path (for rapid turnaround) -->
     <path id="ui.resource.dirs">
@@ -242,9 +253,9 @@
         <include name="log4j*.jar"/>
     </fileset>
 
-    <fileset id="build-only.deps" dir="${lib-build.dir}">
-        <include name="javax.servlet.zip"/>
-    </fileset>
+    <path id="build-only.deps">
+        <pathelement location="${servlet.api.jar}"/>
+    </path>
 
     <!-- Base set for widgets app -->
     <fileset id="build.jars" dir="${ariba.jars.dir}">
@@ -288,9 +299,7 @@
     <!-- AW Tools classpath -->
     <path id="aw.tools.classpath">
         <!-- minimal set of AW / Widgets jars -->
-        <fileset dir="${lib-build.dir}">
-            <include name="javax.servlet.zip"/>
-        </fileset>
+        <pathelement location="${servlet.api.jar}"/>
         <fileset dir="${lib.dir}">
             <include name="log4j*.jar"/>
             <include name="jakarta-oro.jar"/>
@@ -336,9 +345,7 @@
         <path refid="groovy.classpath"/>
 
         <!-- minimal set of AW / Widgets jars -->
-        <fileset dir="${lib-build.dir}">
-            <include name="javax.servlet.zip"/>
-        </fileset>
+        <pathelement location="${servlet.api.jar}"/>
         <fileset dir="${lib.dir}">
             <include name="log4j*.jar"/>
             <include name="jakarta-oro.jar"/>
@@ -836,10 +843,16 @@
             String conf = file.text.replace("port=\"8", "port=\"" + pre)
             conf = conf.replace("Port=\"8", "Port=\"" + pre)
             file.write(conf)
+
+            File catalinaProperties = new File(properties["catalina.base.dir"], "conf/catalina.properties")
+            if (catalinaProperties.exists()) {
+                String props = catalinaProperties.text
+                props = props.replaceAll(/(?ms)^common\.loader=.*?(?=^server\.loader=)/) {
+                    'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"\n\n'
+                }
+                catalinaProperties.write(props)
+            }
         </groovy>
-        <copy todir="${catalina.base.dir}" failonerror="true">
-            <fileset dir="${catalina.home.dir}" includes="conf/**/*"/>
-        </copy>
     </target>
 
     <target name="check-awreload">
