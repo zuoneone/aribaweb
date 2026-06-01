@@ -1,6 +1,7 @@
 <w:HintMessage>
     This demonstrates upload via a separate panel
 </w:HintMessage>
+<a:Form>
 <t:DataTable title="Uploads" list="$uploads" item="$currentUpload"
              multiSelect="$true" displayGroup="$displayGroup">
     <t:Column key="fileName"/>
@@ -16,3 +17,4 @@
     <t:SelectionButtonArea><w:TextButton action="$remove">Remove</w:TextButton></t:SelectionButtonArea>
     <t:ButtonArea><w:TextButton action="$add">Add</w:TextButton></t:ButtonArea>
 </t:DataTable>
+</a:Form>
