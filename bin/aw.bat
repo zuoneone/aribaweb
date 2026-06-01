@@ -49,7 +49,18 @@ set PATH=%ANT_HOME%\bin;%PATH%
 echo Setting ANT_HOME to: %ANT_HOME%
 
 :check_ANT_OPTS
-set ANT_OPTS=-Xmx400m --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED
+set JAVA_VERSION_STR=
+for /f "tokens=3" %%g in ('"%JAVA_HOME%\bin\java.exe" -version 2^>^&1 ^| findstr /i "version"') do (
+    set JAVA_VERSION_STR=%%g
+)
+if not "%JAVA_VERSION_STR%" == "" (
+    set JAVA_VERSION_STR=%JAVA_VERSION_STR:"=%
+)
+if "%JAVA_VERSION_STR:~0,2%" == "1." (
+    set ANT_OPTS=-Xmx400m
+) else (
+    set ANT_OPTS=-Xmx400m --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED
+)
 
 :init
 @rem Get command-line arguments, handling Windowz variants

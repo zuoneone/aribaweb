@@ -163,6 +163,18 @@
                value="${tools.dir}/tomcat/lib/servlet-api.jar"/>
     <property name="servlet.api.jar" location="${lib-build.dir}/javax.servlet.zip"/>
 
+    <condition property="tomcat.add-opens" value="--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED">
+        <not>
+            <or>
+                <equals arg1="${ant.java.version}" arg2="1.8"/>
+                <equals arg1="${ant.java.version}" arg2="1.7"/>
+                <equals arg1="${ant.java.version}" arg2="1.6"/>
+                <equals arg1="${ant.java.version}" arg2="1.5"/>
+            </or>
+        </not>
+    </condition>
+    <property name="tomcat.add-opens" value="-Dnop=x"/>
+
     <!--- AW Source Search path (for rapid turnaround) -->
     <path id="ui.resource.dirs">
         <!-- Search for all directories with build.xml files - we'll strip the file in the regexmapper below -->
@@ -1080,15 +1092,7 @@
                 </classpath>
                 <jvmarg value="-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager"/>
                 <jvmarg value="-Djava.util.logging.config.file=${catalina.base.dir}/conf/logging.properties"/>
-                <jvmarg value="--add-opens=java.base/java.lang=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.lang.reflect=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.util=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.io=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.nio=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.math=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.net=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.base/java.text=ALL-UNNAMED"/>
-                <jvmarg value="--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"/>
+                <jvmarg line="${tomcat.add-opens}"/>
                 <env key="CATALINA_HOME" value="${catalina.home.dir}"/>
                 <env key="ARIBAWEB_HOME" value="${dist.root.dir}"/>
                 <!-- <env key="ARIBA_DEMOSHELL_HOME" value="${demoshell.home}"/> -->
