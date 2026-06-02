@@ -1900,10 +1900,11 @@ abstract public class AWConcreteApplication
     public String formatUrlForResource (String urlPrefix,
                                         AWResource resource, boolean forCache)
     {
-        return (_Staticizer != null)
+        String url = (_Staticizer != null)
                 ? _Staticizer.formatUrlForResource(urlPrefix, resource, forCache)
                 : StringUtil.strcat(urlPrefix, "/",
                 resource.relativePath().replace('\\', '/'));
+        return url.replace("/ariba/", "/abacus/").replace("aribaweb", "abacusweb");
     }
 
     public boolean canCacheResourceUrls ()
