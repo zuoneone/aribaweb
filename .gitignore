@@ -1,4 +1,24 @@
 # Compiled class files
+*#
+*.iml
+*.ipr
+*.iws
+*.jar
+*.sw?
+*~
+.#*
+.*.md.html
+.DS_Store
+.attach_pid*
+.classpath
+.factorypath
+.gradle
+.metadata
+.project
+.recommenders
+.settings
+.springBeans
+.vscode
 *.class
 
 
@@ -11,6 +31,7 @@ build/
 webapps/
 ide/
 conf/
+work/
 
 # Extracted tools
 tools/ant/
