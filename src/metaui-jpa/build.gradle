@@ -1,0 +1,7 @@
+description = 'AribaWeb MetaUI JPA Adapter'
+
+dependencies {
+    api project(':metaui')
+    api fileTree(dir: "${rootProject.projectDir}/lib/ext-jpa", include: ['*.jar', '*.zip'])
+    api fileTree(dir: "${rootProject.projectDir}/lib/ext-compass", include: ['*.jar', '*.zip'])
+}

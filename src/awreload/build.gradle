@@ -1,0 +1,5 @@
+description = 'AribaWeb Reloader Core'
+
+dependencies {
+    api project(':aribaweb')
+}

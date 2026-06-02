@@ -1,0 +1,5 @@
+description = 'AribaWeb Examples AppCore'
+
+dependencies {
+    api project(':metaui-jpa')
+}

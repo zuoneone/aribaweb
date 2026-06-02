@@ -1,0 +1,60 @@
+plugins {
+    id 'base'
+}
+
+allprojects {
+    group = project.property('group')
+    version = project.property('version')
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects { project ->
+    // Skip the examples parent container module
+    if (project.path == ':examples') return
+
+    apply plugin: 'java-library'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    // Configure the custom directory layout for standard Java subprojects
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['.']
+                exclude 'build/**'
+                exclude 'adaptor-jdk15/**' // exclude nested adaptor module in awreload
+            }
+            resources {
+                srcDirs = ['.']
+                include '**/*.awl', '**/*.properties', '**/*.xml', '**/*.png', '**/*.jpg', '**/*.gif', '**/*.js', '**/*.css'
+                exclude 'build/**'
+                exclude 'adaptor-jdk15/**'
+            }
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+
+    plugins.withId('groovy') {
+        tasks.withType(GroovyCompile) {
+            groovyClasspath = files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
+        }
+    }
+
+    dependencies {
+        // Compile against Servlet API from Maven Central
+        compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
+        
+        // Include all standard external jars
+        implementation fileTree(dir: "${rootProject.projectDir}/lib/ext", include: ['*.jar'])
+    }
+}

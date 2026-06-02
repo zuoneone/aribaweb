@@ -1,0 +1,6 @@
+description = 'AribaWeb Groovy Loader'
+
+dependencies {
+    api project(':aribaweb')
+    implementation files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
+}

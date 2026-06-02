@@ -1,0 +1,24 @@
+rootProject.name = 'aribaweb-parent'
+
+// Core Modules
+def coreModules = [
+    'util', 'expr', 'aribaweb', 'widgets', 'metaui', 
+    'metaui-jpa', 'groovyloader', 'awreload'
+]
+coreModules.each { name ->
+    include ":$name"
+    project(":$name").projectDir = file("src/$name")
+}
+
+// Adaptor for jdk15 (under awreload)
+include ":awreload-jmti"
+project(":awreload-jmti").projectDir = file("src/awreload/adaptor-jdk15")
+
+// Example Applications
+def exampleModules = [
+    'appcore', 'Demo', 'MasterDetail', 'GuestBook', 'AtIssue'
+]
+exampleModules.each { name ->
+    include ":examples:$name"
+    project(":examples:$name").projectDir = file("examples/$name")
+}

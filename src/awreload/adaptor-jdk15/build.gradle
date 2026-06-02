@@ -1,0 +1,14 @@
+description = 'AribaWeb Reloader JMTI Agent'
+
+dependencies {
+    implementation project(':awreload')
+}
+
+jar {
+    manifest {
+        attributes(
+            'Premain-Class': 'ariba.awreload.jmti.Agent',
+            'Can-Redefine-Classes': 'true'
+        )
+    }
+}

@@ -1,0 +1,38 @@
+plugins {
+    id 'war'
+    id 'groovy'
+}
+
+description = 'AribaWeb MasterDetail Example'
+
+dependencies {
+    implementation project(':widgets')
+    implementation project(':metaui-jpa')
+    implementation project(':examples:appcore')
+
+    implementation files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
+    implementation fileTree(dir: "${rootProject.projectDir}/lib/ext-jpa", include: ['*.jar'])
+    
+    compileOnly files("${rootProject.projectDir}/lib/ext-build/javax.servlet.zip")
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['.']
+            exclude 'build/**'
+        }
+        java {
+            srcDirs = [] // Empty because Groovy joint compiles Java files in groovy.srcDirs
+        }
+        resources {
+            srcDirs = ['.']
+            include '**/*.awl', '**/*.properties', '**/*.xml', '**/*.png', '**/*.jpg', '**/*.gif', '**/*.js', '**/*.css'
+            exclude 'build/**'
+        }
+    }
+}
+
+war {
+    archiveFileName = 'MasterDetail.war'
+}

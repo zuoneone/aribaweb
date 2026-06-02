@@ -1,0 +1,72 @@
+description = 'AribaWeb Widgets Framework'
+
+dependencies {
+    api project(':aribaweb')
+}
+
+tasks.register('mergeJs') {
+    inputs.files(fileTree(dir: 'resource/webserver/widg', include: ['*.js']))
+    def outDir = layout.buildDirectory.dir('resources/main/ariba/ui/widg')
+    outputs.file(outDir.map { it.file('widgets_all.js') })
+
+    doLast {
+        def destFile = outputs.files.singleFile
+        destFile.parentFile.mkdirs()
+        
+        def mergeFiles = [
+            'DragDrop.js', 'Widgets.js', 'Menu.js', 'Chooser.js', 'Datatable.js', 'Calendar.js'
+        ].collect { file("resource/webserver/widg/$it") }
+
+        destFile.withWriter { writer ->
+            mergeFiles.each { file ->
+                if (file.exists()) {
+                    writer << file.text << "\n"
+                }
+            }
+        }
+    }
+}
+
+processResources {
+    dependsOn mergeJs
+
+    // Copy resource/global to ariba/
+    from('resource/global') {
+        into 'ariba'
+    }
+
+    // Docroot gif copy
+    from('.') {
+        include 'ariba/**/*.gif'
+        exclude 'ariba/ui/richtext/xinha/'
+        into 'docroot'
+    }
+
+    // Xinha copy
+    from('.') {
+        include 'ariba/ui/richtext/xinha/*.js'
+        include 'ariba/ui/richtext/xinha/*.css'
+        include 'ariba/ui/richtext/xinha/modules/**'
+        include 'ariba/ui/richtext/xinha/lang/**'
+        include 'ariba/ui/richtext/xinha/skins/ariba/**'
+        include 'ariba/ui/richtext/xinha/images/**'
+        include 'ariba/ui/richtext/xinha/popups/blank.html'
+        into 'docroot'
+    }
+
+    // Webserver resources
+    from('resource/webserver') {
+        into 'docroot/ariba/ui'
+    }
+
+    // Branding resources
+    from('resource/webserver/branding/ariba') {
+        into 'docroot/ariba/branding'
+    }
+
+    // Unmerged JS copy
+    from('resource/webserver/widg') {
+        include 'ModalWindow.js', 'prettify.js', 'richtext.js', 'flashchart.js'
+        into 'ariba/ui/widg'
+    }
+}

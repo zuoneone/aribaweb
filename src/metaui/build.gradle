@@ -1,0 +1,60 @@
+description = 'AribaWeb MetaUI Framework'
+
+dependencies {
+    api project(':widgets')
+}
+
+def generatedSourceDir = file("src-gen")
+
+tasks.register('generateParser') {
+    def outputDir = file("${generatedSourceDir}/ariba/ui/meta/core")
+    def jjFile = file("ariba/ui/meta/core/Parser.jj")
+
+    inputs.file jjFile
+    outputs.dir outputDir
+
+    doLast {
+        outputDir.mkdirs()
+
+        // Run javacc to generate parser
+        javaexec {
+            workingDir = projectDir
+            classpath = files("${rootProject.projectDir}/lib/ext-build/javacc.jar")
+            mainClass = 'org.javacc.parser.Main'
+            args = [
+                "-OUTPUT_DIRECTORY=src-gen/ariba/ui/meta/core",
+                "ariba/ui/meta/core/Parser.jj"
+            ]
+        }
+
+        // Clean up backslashes in first line of generated files to avoid compiler unicode escape errors
+        fileTree(generatedSourceDir).each { file ->
+            if (file.isFile()) {
+                def lines = file.readLines()
+                if (lines.size() > 0 && lines[0].contains('\\')) {
+                    lines[0] = lines[0].replace('\\', '/')
+                    file.setText(lines.join('\n'), 'UTF-8')
+                }
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir generatedSourceDir
+        }
+        resources {
+            exclude 'src-gen/**'
+        }
+    }
+}
+
+compileJava.dependsOn generateParser
+processResources.dependsOn generateParser
+
+clean.doFirst {
+    delete generatedSourceDir
+}
+
