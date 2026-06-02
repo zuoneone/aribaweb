@@ -36,19 +36,22 @@ if "%JAVA_HOME%" == "" (
     echo set up JAVA_HOME first
     goto end
 )
+set JAVA_HOME=%JAVA_HOME:"=%
+if not exist "%JAVA_HOME%\bin\java.exe" (
+    echo JAVA_HOME is not set up correctly: %JAVA_HOME%
+    goto end
+)
 set AW_JAVA_HOME=%JAVA_HOME%
 
 set PATH=%JAVA_HOME%\bin;%PATH%
 echo Setting JAVA_HOME to: %JAVA_HOME%
 
 :check_ANT_HOME
-if not "%ANT_HOME%" == "" goto set_ant_path
-if exist "%AW_HOME%\tools\ant" (
-    set ANT_HOME=%AW_HOME%\tools\ant
-) else (
-    echo ant is not setup, set it first
-    goto end
+if not "%ANT_HOME%" == "" (
+    set ANT_HOME=%ANT_HOME:"=%
+    if exist "%ANT_HOME%\bin\ant.bat" goto set_ant_path
 )
+
 :set_ant_path
 set PATH=%ANT_HOME%\bin;%PATH%
 echo Setting ANT_HOME to: %ANT_HOME%
