@@ -32,7 +32,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$AW_HOME = "C:\tmp\aribaweb"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$AW_HOME = (Get-Item $ScriptDir).Parent.FullName
+Write-Host "[INFO] AW_HOME: $AW_HOME" -ForegroundColor Green
+
 $DEMO_DIR = Join-Path $AW_HOME "examples\Demo"
 $DeployDocroot = Join-Path $DEMO_DIR "build\tomcat-bases\Demo\webapps\Demo\docroot"
 $SrcAribaweb = Join-Path $AW_HOME "src\aribaweb"
@@ -111,15 +114,29 @@ if (Test-Path $DstDir) {
 
 # Step 4: Rename files containing aribaweb -> abacusweb
 Write-LogInfo "Step 4: Renaming files (aribaweb -> abacusweb)..."
-$FilesToRename = Get-ChildItem -Path $DstDir -Recurse -Filter "*aribaweb*" -ErrorAction SilentlyContinue
 $RenamedCount = 0
 
-foreach ($file in $FilesToRename) {
-    $newName = $file.Name.Replace("aribaweb", "abacusweb")
-    if ($file.Name -ne $newName) {
-        Rename-Item -Path $file.FullName -NewName $newName -Force
-        Write-Host "  Renamed: $($file.Name) -> $newName" -ForegroundColor Gray
-        $RenamedCount++
+# Need to loop because renaming directories affects subsequent file paths
+$Continue = $true
+while ($Continue) {
+    $FilesToRename = Get-ChildItem -Path $DstDir -Recurse -Filter "*aribaweb*" -ErrorAction SilentlyContinue
+    if (-not $FilesToRename) {
+        $Continue = $false
+        break
+    }
+    
+    foreach ($file in $FilesToRename) {
+        # Check if file still exists (might have been affected by previous rename)
+        if (-not (Test-Path $file.FullName)) {
+            continue
+        }
+        
+        $newName = $file.Name.Replace("aribaweb", "abacusweb")
+        if ($file.Name -ne $newName) {
+            Rename-Item -Path $file.FullName -NewName $newName -Force
+            Write-Host "  Renamed: $($file.Name) -> $newName" -ForegroundColor Gray
+            $RenamedCount++
+        }
     }
 }
 

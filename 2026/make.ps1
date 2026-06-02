@@ -3,12 +3,9 @@
     AribaWeb Project Build and Deploy Script (PowerShell)
 .DESCRIPTION
     Features: Stop Tomcat -> Pre-compile (JavaCC) -> Build Project -> Deploy -> Start Tomcat
+    Defaults to PRODUCTION MODE with RapidTurnaround disabled.
 .NOTES
     Run in Administrator PowerShell
-    
-    Mode Selection:
-    - Development Mode (default): RapidTurnaround enabled, resources served from source directory
-    - Production Mode (-prod):    RapidTurnaround disabled, resources served from deployment directory
 #>
 
 # ============================================
@@ -33,8 +30,7 @@ $Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $LOG_FILE = Join-Path $PROJECT_DIR "2026\deploy_$Timestamp.log"
 
 # JavaCC Configuration (使用 lib/ext-build/javacc-7.0.12.jar)
-$JAVACC_VERSION = "7.0.12"
-$JAVACC_JAR = Join-Path $PROJECT_DIR "lib\ext-build\javacc-$JAVACC_VERSION.jar"
+$JAVACC_JAR = Join-Path $PROJECT_DIR "lib\ext-build\javacc-7.0.12.jar"
 
 # ============================================
 # Color Output Functions
@@ -64,32 +60,6 @@ function Write-LogDivider {
     $divider = "============================================"
     Write-Host $divider
     Add-Content -Path $LOG_FILE -Value $divider
-}
-
-# ============================================
-# Download JavaCC (使用 lib/ext-build/javacc-7.0.12.jar)
-# ============================================
-function Download-JavaCC {
-    Write-LogDivider
-
-    if (Test-Path $JAVACC_JAR) {
-        Write-LogInfo "JavaCC found: $JAVACC_JAR"
-        return $true
-    }
-
-    Write-LogInfo "JavaCC not found, downloading..."
-
-    $JAVACC_URL = "https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/$JAVACC_VERSION/javacc-$JAVACC_VERSION.jar"
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $JAVACC_URL -OutFile $JAVACC_JAR -UseBasicParsing
-        Write-LogInfo "JavaCC downloaded: $JAVACC_JAR"
-    }
-    catch {
-        Write-LogError "JavaCC download failed: $_"
-        return $false
-    }
-    return $true
 }
 
 # ============================================
@@ -297,27 +267,16 @@ function Compile-Project {
 }
 
 # ============================================
-# Deploy and start Demo application
+# Deploy Demo application (build only)
 # ============================================
-function Deploy-AndStart {
-    param([bool]$ProductionMode = $false)
-
+function Deploy-Demo {
     Write-LogDivider
-    if ($ProductionMode) {
-        Write-LogInfo "Building and starting Demo application (PRODUCTION MODE)..."
-    } else {
-        Write-LogInfo "Building and starting Demo application (DEVELOPMENT MODE)..."
-    }
+    Write-LogInfo "Deploying Demo application (PRODUCTION MODE)..."
 
     Set-Location $DEMO_DIR
 
-    # 构建参数
-    $buildArgs = if ($ProductionMode) {
-        # 生产模式：传递 -Ddebug.off=true 禁用 RapidTurnaround
-        "`"-Ddebug.off=true`""
-    } else {
-        ""
-    }
+    # 生产模式：传递 -Ddebug.off=true 禁用 RapidTurnaround
+    $buildArgs = "`"-Ddebug.off=true`""
 
     # Step 1: 构建 jar 和 webapp
     Write-LogInfo "Building jar and webapp..."
@@ -330,16 +289,30 @@ function Deploy-AndStart {
         return $false
     }
 
-    # Step 2: 启动 Tomcat 在后台
-    Write-LogInfo "Starting Tomcat in background..."
+    Write-LogInfo "Demo application deployed successfully!"
+    return $true
+}
+
+# ============================================
+# Start Tomcat
+# ============================================
+function Start-Tomcat {
+    Write-LogDivider
+    Write-LogInfo "Starting Tomcat..."
+
+    Set-Location $DEMO_DIR
+
+    # 生产模式参数
+    $buildArgs = "`"-Ddebug.off=true`""
+
+    # 使用 Start-Process 在后台启动，不等待
+    # 环境变量已在脚本开头设置，直接运行 ant
     $startTomcatCmd = "$env:ANT_HOME\bin\ant.bat tomcat $buildArgs"
     Write-LogInfo "Running: $startTomcatCmd"
     
-    # 使用 Start-Process 在后台启动，不等待
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $startTomcatCmd -WorkingDirectory $DEMO_DIR -WindowStyle Normal
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "set AW_HOME=$env:AW_HOME& $startTomcatCmd" -WorkingDirectory $DEMO_DIR -WindowStyle Normal
 
     Write-LogInfo "Tomcat is starting in background. Please wait a few seconds for it to fully start."
-    Write-LogInfo "Demo application deployed successfully!"
     Write-LogInfo "Access the application at: http://localhost:8080/Demo/AribaWeb"
     return $true
 }
@@ -351,21 +324,14 @@ function Show-Help {
     Write-Host "AribaWeb Build and Deploy Script v1.2 (PowerShell)"
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  .\make.ps1           - Full build, deploy and start (Development Mode)"
-    Write-Host "  .\make.ps1 -prod     - Full build, deploy and start (Production Mode)"
+    Write-Host "  .\make.ps1           - Full build, deploy and start (Production Mode)"
     Write-Host "  .\make.ps1 clean     - Clean generated files only"
     Write-Host "  .\make.ps1 -h        - Show this help"
     Write-Host ""
-    Write-Host "Mode Selection:"
-    Write-Host "  Development Mode (default):"
-    Write-Host "    - RapidTurnaround enabled (IsRapidTurnaroundEnabled=true)"
-    Write-Host "    - Resources served from source directory via AWXDebugResourceActions"
-    Write-Host "    - Code changes take effect immediately without rebuild"
-    Write-Host ""
-    Write-Host "  Production Mode (-prod):"
-    Write-Host "    - RapidTurnaround disabled (IsRapidTurnaroundEnabled=false)"
-    Write-Host "    - Resources served from deployment directory (webapps/Demo/docroot)"
-    Write-Host "    - Requires rebuild to see code changes"
+    Write-Host "Production Mode:"
+    Write-Host "  - RapidTurnaround disabled (IsRapidTurnaroundEnabled=false)"
+    Write-Host "  - Resources served from deployment directory (webapps/Demo/docroot)"
+    Write-Host "  - Requires rebuild to see code changes"
     Write-Host ""
     Write-Host "Features:"
     Write-Host "  1. Download JavaCC (if needed)"
@@ -375,6 +341,7 @@ function Show-Help {
     Write-Host "  5. Generate metaui Parser (Ant javacc task)"
     Write-Host "  6. Build full project"
     Write-Host "  7. Build and start Demo application"
+    Write-Host "  8. Rename ariba to abacus (post-deploy step)"
     Write-Host ""
     Write-Host "Log file: $LOG_FILE"
     Write-Host ""
@@ -406,16 +373,7 @@ function Main {
         exit 0
     }
 
-    # Check for production mode
-    $ProductionMode = $args -contains "-prod"
-    if ($ProductionMode) {
-        Write-LogInfo "Running in PRODUCTION MODE"
-    } else {
-        Write-LogInfo "Running in DEVELOPMENT MODE"
-    }
-
-    # Download JavaCC
-    if (-not (Download-JavaCC)) { exit 1 }
+    Write-LogInfo "Running in PRODUCTION MODE"
 
     # Clean old generated files
     Clean-Generated
@@ -426,12 +384,15 @@ function Main {
     # Compile project
     if (-not (Compile-Project)) { exit 1 }
 
-    # Deploy and start Demo
-    if (-not (Deploy-AndStart -ProductionMode $ProductionMode)) { exit 1 }
+    # Deploy Demo (build only, don't start yet)
+    if (-not (Deploy-Demo)) { exit 1 }
 
-    # Rename ariba to abacus (post-deploy step)
-    # Write-LogInfo "Running post-deploy rename script..."
-    # & "$ScriptDir\rename-assets.ps1"
+    # Rename ariba to abacus (pre-start step)
+    Write-LogInfo "Running rename script..."
+    & "$ScriptDir\rename-assets.ps1"
+
+    # Start Tomcat
+    if (-not (Start-Tomcat)) { exit 1 }
 
     Write-LogDivider
     Write-LogInfo "Script execution completed!"
