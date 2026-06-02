@@ -24,7 +24,10 @@ shift
 
 :check_AW_HOME
 @rem Define AW_HOME if not set
-if not "%AW_HOME%" == "" goto check_JAVA_HOME
+if defined AW_HOME (
+    set AW_HOME=%AW_HOME:"=%
+    goto check_JAVA_HOME
+)
 set AW_HOME=%DIRNAME%..
 echo Setting AW_HOME.  To support running the AW command more easily, to this:
 echo     set AW_HOME=%AW_HOME%
@@ -32,7 +35,7 @@ echo     set PATH=%%AW_HOME%%\bin;%%PATH%%
 echo.
 
 :check_JAVA_HOME
-if "%JAVA_HOME%" == "" (
+if not defined JAVA_HOME (
     echo set up JAVA_HOME first
     goto end
 )
@@ -47,10 +50,16 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 echo Setting JAVA_HOME to: %JAVA_HOME%
 
 :check_ANT_HOME
-if not "%ANT_HOME%" == "" (
+if defined ANT_HOME (
     set ANT_HOME=%ANT_HOME:"=%
     if exist "%ANT_HOME%\bin\ant.bat" goto set_ant_path
 )
+if exist "%AW_HOME%\tools\ant" (
+    set ANT_HOME=%AW_HOME%\tools\ant
+    goto set_ant_path
+)
+echo ant is not setup, set it first
+goto end
 
 :set_ant_path
 set PATH=%ANT_HOME%\bin;%PATH%
@@ -58,7 +67,7 @@ echo Setting ANT_HOME to: %ANT_HOME%
 
 :check_ANT_OPTS
 set JAVA_VERSION_STR=
-for /f "tokens=3" %%g in ('%JAVA_HOME%\bin\java.exe -version 2^>^&1 ^| findstr /i "version"') do (
+for /f "tokens=3" %%g in ('^""%JAVA_HOME%\bin\java.exe" -version 2^>^&1 ^| findstr /i "version"^"') do (
     set JAVA_VERSION_STR=%%g
 )
 if not "%JAVA_VERSION_STR%" == "" (
@@ -158,11 +167,11 @@ set ANT_EXE=%ANT_HOME%\bin\ant.bat
 @rem Execute Ant
 if "x" == "x%AWCMD%" goto other_command
 echo Running Ant with built-in command %AWCMD%...
-"%ANT_EXE%" -emacs -logger org.apache.tools.ant.NoBannerLogger -f %AW_HOME%\tools\build-commands.xml %AWCMD% %CMD_LINE_ARGS%
+"%ANT_EXE%" -emacs -logger org.apache.tools.ant.NoBannerLogger -f "%AW_HOME%\tools\build-commands.xml" %AWCMD% %CMD_LINE_ARGS%
 goto end
 
 :other_command
-echo Running other command "%OTHERCMD% with args "%CMD_LINE_ARGS%"
+echo Running other command "%OTHERCMD%" with args "%CMD_LINE_ARGS%"
 %OTHERCMD% %CMD_LINE_ARGS%
 
 :end
