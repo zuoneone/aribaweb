@@ -1,0 +1,45 @@
+description = 'AribaWeb UI Framework Core'
+
+dependencies {
+    api project(':expr')
+}
+
+// Merge javascript files as done in Ant
+tasks.register('mergeJs') {
+    inputs.files(fileTree(dir: 'resource/webserver', include: ['*.js']))
+    def outDir = layout.buildDirectory.dir('resources/main/ariba/ui/aribaweb')
+    outputs.file(outDir.map { it.file('aribaweb_all.js') })
+
+    doLast {
+        def destFile = outputs.files.singleFile
+        destFile.parentFile.mkdirs()
+        
+        def mergeFiles = [
+            'jquery.js', 'Util.js', 'Dom.js', 'Event.js', 
+            'Input.js', 'Request.js', 'Refresh.js', 'Handlers.js'
+        ].collect { file("resource/webserver/$it") }
+
+        destFile.withWriter { writer ->
+            mergeFiles.each { file ->
+                if (file.exists()) {
+                    writer << file.text << "\n"
+                }
+            }
+        }
+    }
+}
+
+processResources {
+    dependsOn mergeJs
+    
+    // Copy unmerged debug JS files
+    from('resource/webserver') {
+        include 'Debug.js', 'AWJSDebugWin.js'
+        into 'ariba/ui/aribaweb'
+    }
+    
+    // Copy docroot resources
+    from('resource/webserver') {
+        into 'docroot/ariba/ui/aribaweb'
+    }
+}
