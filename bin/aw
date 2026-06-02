@@ -133,7 +133,20 @@ if [ -z "$ANT_HOME" ] ; then
     fi
     export ANT_HOME="$antHome"
 fi
-export ANT_OPTS="-Xmx400m -XX:MaxPermSize=300m"
+if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    java_version=$("$JAVA_HOME/bin/java" -version 2>&1 | grep "version" | head -n 1 | cut -d'"' -f2)
+else
+    java_version=$(java -version 2>&1 | grep "version" | head -n 1 | cut -d'"' -f2)
+fi
+
+case "$java_version" in
+    1.*)
+        export ANT_OPTS="-Xmx400m"
+        ;;
+    *)
+        export ANT_OPTS="-Xmx400m --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED"
+        ;;
+esac
 
 #echo "AW_HOME = $AW_HOME"
 #echo "Arg count=$#"
