@@ -37,7 +37,7 @@ if "%JAVA_HOME%" == "" (
     goto end
 )
 set AW_JAVA_HOME=%JAVA_HOME%
-set JAVA_HOME=%AW_JAVA_HOME%
+
 set PATH=%JAVA_HOME%\bin;%PATH%
 echo Setting JAVA_HOME to: %JAVA_HOME%
 
