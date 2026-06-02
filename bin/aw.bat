@@ -23,11 +23,16 @@ if "x" == "x%AWCMD%" set OTHERCMD=%~1
 shift
 
 :check_AW_HOME
-@rem Define AW_HOME if not set
-if defined AW_HOME (
-    set AW_HOME=%AW_HOME:"=%
-    goto check_JAVA_HOME
+if not defined AW_HOME goto define_AW_HOME
+set AW_HOME=%AW_HOME:"=%
+echo %AW_HOME%| findstr /r "^%%" >nul
+if %ERRORLEVEL% equ 0 (
+    set AW_HOME=
+    goto define_AW_HOME
 )
+goto check_JAVA_HOME
+
+:define_AW_HOME
 set AW_HOME=%DIRNAME%..
 echo Setting AW_HOME.  To support running the AW command more easily, to this:
 echo     set AW_HOME=%AW_HOME%
@@ -35,11 +40,13 @@ echo     set PATH=%%AW_HOME%%\bin;%%PATH%%
 echo.
 
 :check_JAVA_HOME
-if not defined JAVA_HOME (
-    echo set up JAVA_HOME first
-    goto end
-)
+if not defined JAVA_HOME goto err_JAVA_HOME
 set JAVA_HOME=%JAVA_HOME:"=%
+echo %JAVA_HOME%| findstr /r "^%%" >nul
+if %ERRORLEVEL% equ 0 (
+    set JAVA_HOME=
+    goto err_JAVA_HOME
+)
 if not exist "%JAVA_HOME%\bin\java.exe" (
     echo JAVA_HOME is not set up correctly: %JAVA_HOME%
     goto end
@@ -48,12 +55,23 @@ set AW_JAVA_HOME=%JAVA_HOME%
 
 set PATH=%JAVA_HOME%\bin;%PATH%
 echo Setting JAVA_HOME to: %JAVA_HOME%
+goto check_ANT_HOME
+
+:err_JAVA_HOME
+echo set up JAVA_HOME first
+goto end
 
 :check_ANT_HOME
-if defined ANT_HOME (
-    set ANT_HOME=%ANT_HOME:"=%
-    if exist "%ANT_HOME%\bin\ant.bat" goto set_ant_path
+if not defined ANT_HOME goto fallback_ANT_HOME
+set ANT_HOME=%ANT_HOME:"=%
+echo %ANT_HOME%| findstr /r "^%%" >nul
+if %ERRORLEVEL% equ 0 (
+    set ANT_HOME=
+    goto fallback_ANT_HOME
 )
+if exist "%ANT_HOME%\bin\ant.bat" goto set_ant_path
+
+:fallback_ANT_HOME
 if exist "%AW_HOME%\tools\ant" (
     set ANT_HOME=%AW_HOME%\tools\ant
     goto set_ant_path
