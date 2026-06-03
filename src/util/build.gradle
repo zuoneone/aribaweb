@@ -1,0 +1,9 @@
+// Copy log4j.properties to the root of the resources classpath as done in Ant build.xml
+processResources {
+    from('ariba/util/log/log4j.properties') {
+        into ''
+    }
+    from('ariba') {
+        include 'resource/**/*'
+    }
+}

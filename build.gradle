@@ -1,0 +1,205 @@
+// Root build.gradle for AribaWeb
+
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.file.RegularFileProperty
+import java.util.Properties
+
+// Custom task to run AWEvaluateTemplateFile natively using the built project's classpath
+abstract class EvaluateTemplateTask extends JavaExec {
+    @Input
+    abstract MapProperty<String, String> getTemplateProperties()
+
+    @InputFile
+    abstract RegularFileProperty getTemplateFile()
+
+    @OutputFile
+    abstract RegularFileProperty getOutputFile()
+
+    EvaluateTemplateTask() {
+        mainClass.set('ariba.ui.aribaweb.util.AWEvaluateTemplateFile')
+    }
+
+    @TaskAction
+    void exec() {
+        File propsFile = File.createTempFile("gradle_eval", ".properties")
+        propsFile.deleteOnExit()
+        Properties props = new Properties()
+        templateProperties.get().each { k, v -> props.setProperty(k, v) }
+        propsFile.withOutputStream { props.store(it, null) }
+
+        args = [
+            templateFile.get().asFile.absolutePath,
+            propsFile.absolutePath,
+            outputFile.get().asFile.absolutePath
+        ]
+
+        super.exec()
+    }
+}
+
+subprojects {
+    repositories {
+        mavenCentral()
+    }
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
+    }
+
+    // Default configuration for Java projects. 
+    // Subprojects with Groovy (examples, site) will override this in their own build.gradle.
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['.']
+                include 'ariba/**/*.java'
+            }
+            resources {
+                srcDirs = ['.']
+                include 'ariba/**/*.awl'
+                include 'ariba/**/*.htm'
+                include 'ariba/**/*.oss'
+                include 'ariba/**/*.awz'
+                include 'ariba/**/*.afr'
+                include 'ariba/**/*.csv'
+                include 'ariba/**/*.xml'
+                include 'ariba/**/*.properties'
+                exclude 'build/**'
+                exclude 'ariba/resource/**'
+                exclude 'resource/**'
+            }
+        }
+    }
+
+    jar {
+        duplicatesStrategy = 'exclude'
+        destinationDirectory = file("${rootDir}/lib")
+        archiveFileName = "ariba.${project.name}.jar"
+        metaInf {
+            from("${rootDir}/LICENSE.txt")
+            from("${rootDir}/NOTICE.txt")
+            if (file("aribaweb.properties").exists()) {
+                from("aribaweb.properties")
+            }
+        }
+    }
+
+
+    dependencies {
+        implementation fileTree(dir: "${rootDir}/lib/ext", include: ['*.jar', '*.zip'])
+        implementation files("${rootDir}/tools/tomcat/lib/servlet-api.jar")
+    }
+
+    tasks.withType(GroovyCompile).configureEach {
+        groovyClasspath = files("${rootDir}/lib/ext/groovy-all.jar")
+    }
+
+    plugins.withId('war') {
+        tasks.named('jar') {
+            enabled = true
+        }
+
+        tasks.named('war') {
+            duplicatesStrategy = 'exclude'
+            classpath = classpath - project.sourceSets.main.output
+            from(tasks.named('jar')) {
+                into 'WEB-INF/lib'
+            }
+            rootProject.subprojects.each { sub ->
+                dependsOn sub.tasks.named('processResources')
+                from(sub.tasks.named('processResources')) {
+                    include 'docroot/**'
+                }
+            }
+        }
+
+        task explodeWar(type: Sync) {
+            dependsOn tasks.named('war')
+            from zipTree(tasks.named('war').flatMap { it.archiveFile })
+            into file("${rootDir}/webapps/${project.name}")
+        }
+    }
+}
+
+ext.EvaluateTemplateTask = EvaluateTemplateTask
+
+// Lifecycle tasks for webapps and running tomcat
+task webapps {
+    description = "Assembles and explodes all WAR files into the root webapps/ directory."
+    dependsOn provider {
+        subprojects.findAll { it.plugins.hasPlugin('war') }.collect { it.tasks.named('explodeWar') }
+    }
+}
+
+task tomcat(type: JavaExec) {
+    description = "Starts Tomcat and runs the exploded webapps."
+    dependsOn webapps
+
+    mainClass = 'org.apache.catalina.startup.Bootstrap'
+    classpath = files(
+        "${rootDir}/tools/tomcat/bin/bootstrap.jar",
+        "${rootDir}/tools/tomcat/bin/tomcat-juli.jar"
+    )
+
+    jvmArgs = [
+        '-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',
+        "-Djava.util.logging.config.file=${rootDir}/conf/logging.properties",
+        '-Xmx256m',
+        '-Dariba.aribaweb.Debug=true',
+        "-Dcatalina.home=${rootDir}/tools/tomcat",
+        "-Dcatalina.base=${rootDir}",
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.io=ALL-UNNAMED',
+        '--add-opens=java.base/java.nio=ALL-UNNAMED',
+        '--add-opens=java.base/java.math=ALL-UNNAMED',
+        '--add-opens=java.base/java.net=ALL-UNNAMED',
+        '--add-opens=java.base/java.text=ALL-UNNAMED',
+        '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED'
+    ]
+
+    environment 'CATALINA_HOME', "${rootDir}/tools/tomcat"
+    environment 'ARIBAWEB_HOME', "${rootDir}"
+    environment 'AW_HOME', "${rootDir}"
+    environment 'AW_RELOAD_CLASSES_ROOT', "${buildDir}/classes"
+
+    def searchPaths = []
+    subprojects.each { sub ->
+        searchPaths << sub.projectDir.absolutePath
+    }
+    environment 'ARIBA_AW_SEARCH_PATH', searchPaths.join(';')
+
+    doFirst {
+        def confDir = file("${rootDir}/conf")
+        if (!confDir.exists()) {
+            confDir.mkdirs()
+            copy {
+                from "${rootDir}/tools/tomcat/conf"
+                into confDir
+            }
+        }
+        println "Starting Tomcat on http://localhost:8080/ (or alternate port in server.xml)..."
+    }
+}
+
+task tomcatBuild {
+    description = "Rebuilds all webapps and starts Tomcat."
+    dependsOn webapps, tomcat
+}
+
+task 'tomcat-build' {
+    description = "Rebuilds all webapps and starts Tomcat (alias)."
+    dependsOn tomcatBuild
+}
+
+

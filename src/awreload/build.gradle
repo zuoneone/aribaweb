@@ -1,0 +1,17 @@
+dependencies {
+    implementation project(':util')
+    implementation project(':expr')
+    implementation project(':aribaweb-core')
+    implementation project(':widgets')
+}
+
+sourceSets {
+    main {
+        java {
+            exclude 'adaptor*/**'
+        }
+        resources {
+            exclude '**/*'
+        }
+    }
+}

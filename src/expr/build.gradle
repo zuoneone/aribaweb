@@ -1,0 +1,44 @@
+dependencies {
+    implementation project(':util')
+}
+
+task generateJjtree(type: JavaExec) {
+    inputs.file file("ariba/util/expr/expr.jjt")
+    outputs.dir file("${buildDir}/generated/javacc/ariba/util/expr")
+
+    classpath = files("${rootDir}/lib/ext-build/javacc.jar")
+    mainClass = 'org.javacc.jjtree.Main'
+    args = [
+        "-BUILD_NODE_FILES=false",
+        "-OUTPUT_DIRECTORY=${buildDir}/generated/javacc/ariba/util/expr",
+        file("ariba/util/expr/expr.jjt").absolutePath
+    ]
+
+    doLast {
+        // Delete Node.java as specified in build.xml
+        delete file("${buildDir}/generated/javacc/ariba/util/expr/Node.java")
+    }
+}
+
+task generateJavacc(type: JavaExec) {
+    dependsOn generateJjtree
+    inputs.file file("${buildDir}/generated/javacc/ariba/util/expr/expr.jj")
+    outputs.dir file("${buildDir}/generated/javacc/ariba/util/expr")
+
+    classpath = files("${rootDir}/lib/ext-build/javacc.jar")
+    mainClass = 'org.javacc.parser.Main'
+    args = [
+        "-OUTPUT_DIRECTORY=${buildDir}/generated/javacc/ariba/util/expr",
+        file("${buildDir}/generated/javacc/ariba/util/expr/expr.jj").absolutePath
+    ]
+}
+
+compileJava.dependsOn generateJavacc
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/javacc"]
+
+processResources {
+    from('ariba') {
+        include 'resource/**/*'
+    }
+}
