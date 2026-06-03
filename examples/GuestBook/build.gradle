@@ -11,20 +11,6 @@ dependencies {
     compileOnly files("${rootProject.projectDir}/lib/ext-build/javax.servlet.zip")
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs = ['.']
-            exclude 'build/**'
-        }
-        resources {
-            srcDirs = ['.']
-            include '**/*.awl', '**/*.properties', '**/*.xml', '**/*.png', '**/*.jpg', '**/*.gif', '**/*.js', '**/*.css'
-            exclude 'build/**'
-        }
-    }
-}
-
 war {
     archiveFileName = 'GuestBook.war'
 }

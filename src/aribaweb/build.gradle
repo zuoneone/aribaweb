@@ -7,25 +7,41 @@ dependencies {
 // Merge javascript files as done in Ant
 tasks.register('mergeJs') {
     inputs.files(fileTree(dir: 'resource/webserver', include: ['*.js']))
-    def outDir = layout.buildDirectory.dir('resources/main/ariba/ui/aribaweb')
-    outputs.file(outDir.map { it.file('aribaweb_all.js') })
+    
+    def classpathDest = layout.buildDirectory.file('resources/main/ariba/ui/aribaweb/aribaweb_all.js')
+    def docrootDest = layout.buildDirectory.file('resources/main/docroot/ariba/ui/aribaweb/aribaweb_all.js')
+    
+    outputs.files(classpathDest, docrootDest)
 
     doLast {
-        def destFile = outputs.files.singleFile
-        destFile.parentFile.mkdirs()
+        def tempFile = file("${buildDir}/tmp/aribaweb_all_uncompacted.js")
+        tempFile.parentFile.mkdirs()
         
         def mergeFiles = [
             'jquery.js', 'Util.js', 'Dom.js', 'Event.js', 
             'Input.js', 'Request.js', 'Refresh.js', 'Handlers.js'
         ].collect { file("resource/webserver/$it") }
 
-        destFile.withWriter { writer ->
+        tempFile.withWriter { writer ->
             mergeFiles.each { file ->
                 if (file.exists()) {
                     writer << file.text << "\n"
                 }
             }
         }
+        
+        // Compact using YUICompressor
+        [classpathDest.get().asFile, docrootDest.get().asFile].each { destFile ->
+            destFile.parentFile.mkdirs()
+            javaexec {
+                classpath = files("${rootProject.projectDir}/lib/ext-build/yuicompressor-2.3.5.jar")
+                mainClass = 'com.yahoo.platform.yui.compressor.YUICompressor'
+                args = ['--line-break', '0', tempFile.absolutePath, '-o', destFile.absolutePath]
+            }
+        }
+        
+        // Clean up temp file
+        tempFile.delete()
     }
 }
 

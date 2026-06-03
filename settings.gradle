@@ -22,3 +22,6 @@ exampleModules.each { name ->
     include ":examples:$name"
     project(":examples:$name").projectDir = file("examples/$name")
 }
+
+include ":examples:site"
+project(":examples:site").projectDir = file("src/site")

@@ -1,0 +1,30 @@
+plugins {
+    id 'war'
+}
+
+description = 'AribaWeb Public Site Application'
+
+dependencies {
+    implementation project(':widgets')
+    implementation project(':metaui')
+    
+    compileOnly files("${rootProject.projectDir}/lib/ext-build/javax.servlet.zip")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['.']
+            exclude 'build/**'
+        }
+        resources {
+            srcDirs = ['.']
+            include '**/*.awl', '**/*.properties', '**/*.xml', '**/*.png', '**/*.jpg', '**/*.gif', '**/*.js', '**/*.css', '**/*.oss'
+            exclude 'build/**'
+        }
+    }
+}
+
+war {
+    archiveFileName = 'site.war'
+}

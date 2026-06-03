@@ -71,7 +71,7 @@ subprojects { project ->
         def srcResourcePath = "resource/ariba"
         if (project.name in ['util', 'expr']) {
             srcResourcePath = "ariba"
-        } else if (project.name in ['metaui', 'awreload', 'metaui-jpa', 'groovyloader']) {
+        } else if (project.name in ['metaui', 'awreload', 'metaui-jpa', 'groovyloader'] || project.path.startsWith(':examples:')) {
             srcResourcePath = ""
         }
         
@@ -84,6 +84,17 @@ subprojects { project ->
     }
 
     plugins.withId('groovy') {
+        sourceSets {
+            main {
+                groovy {
+                    srcDirs = ['.']
+                    exclude 'build/**'
+                }
+                java {
+                    srcDirs = [] // Empty because Groovy joint compiles Java files in groovy.srcDirs
+                }
+            }
+        }
         tasks.withType(GroovyCompile) {
             groovyClasspath = files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
         }
@@ -126,8 +137,24 @@ def getJava17JvmArgs() {
         '--add-opens=java.base/java.math=ALL-UNNAMED',
         '--add-opens=java.base/java.net=ALL-UNNAMED',
         '--add-opens=java.base/java.text=ALL-UNNAMED',
-        '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED'
+        '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+        '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED',
+        '--add-opens=java.xml/com.sun.org.apache.xerces.internal.jaxp=ALL-UNNAMED'
     ]
+}
+
+def getAwSearchPath() {
+    def searchPaths = []
+    subprojects.each { sub ->
+        if (sub.path != ':examples') {
+            searchPaths << sub.projectDir.absolutePath
+        }
+    }
+    def brandingDir = file("src/widgets/resource/webserver/branding/ariba")
+    if (brandingDir.exists()) {
+        searchPaths << brandingDir.absolutePath
+    }
+    return searchPaths.join(';')
 }
 
 def openBrowser(String url) {
@@ -213,6 +240,7 @@ subprojects { sub ->
                 aribawebPropsInputFile.parentFile.mkdirs()
                 
                 def props = new Properties()
+                props.setProperty('aw.namespaceIdentifier', 'x')
                 props.setProperty('aw.useNamespaceFromPackage', 'ariba.ui.meta')
                 
                 if (sub.name in ['Demo', 'AtIssue', 'MasterDetail']) {
@@ -442,7 +470,7 @@ tasks.register('ensureTomcatConf') {
                 // Replace standard ports (8080, 8005, 8009, 8443) with prefix 9
                 content = content.replace("port=\"8", "port=\"9")
                 content = content.replace("Port=\"8", "Port=\"9")
-                content = content.replace("port=\"9080\"", "port=\"9081\"")
+                content = content.replace("port=\"9080\"", "port=\"9082\"")
                 content = content.replace("port=\"9005\"", "port=\"9006\"")
                 content = content.replace("port=\"9009\"", "port=\"9010\"")
                 serverXml.text = content
@@ -472,7 +500,7 @@ tasks.register('tomcat', JavaExec) {
     doFirst {
         def catalinaHome = getCatalinaHome()
         def catalinaBase = projectDir.absolutePath
-        def jpdaAddress = '9001'
+        def jpdaAddress = '9002'
         
         classpath = files("${catalinaHome}/bin/bootstrap.jar", "${catalinaHome}/bin/tomcat-juli.jar")
         mainClass = 'org.apache.catalina.startup.Bootstrap'
@@ -501,6 +529,7 @@ tasks.register('tomcat', JavaExec) {
         environment 'AW_HOME', catalinaBase
         environment 'ARIBA_AWRELOAD', 'true'
         environment 'AW_RELOAD_CLASSES_ROOT', "${catalinaBase}/build/classes"
+        environment 'ARIBA_AW_SEARCH_PATH', rootProject.getAwSearchPath()
         
         println "Launching Tomcat with CATALINA_BASE=${catalinaBase}, CATALINA_HOME=${catalinaHome}"
         println "JPDA debug port enabled on ${jpdaAddress}"
@@ -509,8 +538,8 @@ tasks.register('tomcat', JavaExec) {
         if (openBrowserOnStartup) {
             Thread.startDaemon {
                 println "Waiting for Tomcat to start up..."
-                def url = "http://localhost:9081/Demo/AribaWeb"
-                def pingUrl = new URL("http://localhost:9081/Demo/AribaWeb/ad/ping")
+                def url = "http://localhost:9082/Demo/AribaWeb"
+                def pingUrl = new URL("http://localhost:9082/Demo/AribaWeb/ad/ping")
                 Thread.sleep(2000)
                 for (int i = 0; i < 45; i++) {
                     try {
@@ -579,6 +608,8 @@ tasks.register('tomcatExec', Exec) {
         environment 'AW_HOME', catalinaBase
         environment 'ARIBA_AWRELOAD', 'true'
         environment 'AW_RELOAD_CLASSES_ROOT', "${catalinaBase}/build/classes"
+        environment 'ARIBA_AW_SEARCH_PATH', rootProject.getAwSearchPath()
+        environment 'CATALINA_OPTS', getJava17JvmArgs().join(' ')
     }
 }
 
@@ -843,6 +874,176 @@ tasks.register('package') {
 tasks.register('distAll') {
     group = 'distribution'
     dependsOn 'package'
+}
+
+tasks.register('tomcatBuildExec') {
+    group = 'tomcat'
+    description = 'Rebuilds WAR directories and starts Tomcat via the external catalina script'
+    dependsOn webapps, tomcatExec
+}
+
+tasks.register('javadocsInternal') {
+    group = 'documentation'
+    description = 'Generates internal Javadocs'
+    dependsOn javadocs
+}
+
+tasks.register('ensureSiteTomcatConf') {
+    doLast {
+        def catalinaHome = getCatalinaHome()
+        def catalinaBase = "${projectDir.absolutePath}/build/tomcat-bases/site"
+        def confDir = file("${catalinaBase}/conf")
+        
+        if (!confDir.exists()) {
+            println "Copying Tomcat configuration for site to ${confDir}"
+            copy {
+                from "${catalinaHome}/conf"
+                into confDir
+            }
+            
+            // Update ports in conf/server.xml to prefix 7
+            def serverXml = file("${confDir}/server.xml")
+            if (serverXml.exists()) {
+                def content = serverXml.text
+                content = content.replace("port=\"8", "port=\"7")
+                content = content.replace("Port=\"8", "Port=\"7")
+                serverXml.text = content
+            }
+            
+            // Enable common loader jars in conf/catalina.properties
+            def catalinaProps = file("${confDir}/catalina.properties")
+            if (catalinaProps.exists()) {
+                def content = catalinaProps.text
+                content = content.replaceAll(/(?ms)^common\.loader=.+?$/) {
+                    'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"'
+                }
+                catalinaProps.text = content
+            }
+        }
+        
+        // Also ensure webapps directory exists and site is copied there
+        def webappsDir = file("${catalinaBase}/webapps")
+        webappsDir.mkdirs()
+        
+        // Copy the exploded site app to build/tomcat-bases/site/webapps/site
+        copy {
+            from "${projectDir.absolutePath}/webapps/site"
+            into "${webappsDir}/site"
+        }
+    }
+}
+
+tasks.register('runSite', JavaExec) {
+    group = 'tomcat'
+    description = 'Starts Tomcat and runs the public Site app on port 7080'
+    dependsOn webapps, 'ensureSiteTomcatConf'
+    
+    doFirst {
+        def catalinaHome = getCatalinaHome()
+        def catalinaBase = "${projectDir.absolutePath}/build/tomcat-bases/site"
+        
+        classpath = files("${catalinaHome}/bin/bootstrap.jar", "${catalinaHome}/bin/tomcat-juli.jar")
+        mainClass = 'org.apache.catalina.startup.Bootstrap'
+
+        systemProperty 'java.util.logging.manager', 'org.apache.juli.ClassLoaderLogManager'
+        systemProperty 'java.util.logging.config.file', "${catalinaBase}/conf/logging.properties"
+        systemProperty 'catalina.home', catalinaHome
+        systemProperty 'catalina.base', catalinaBase
+        systemProperty 'ariba.aribaweb.Debug', 'true'
+        systemProperty 'AWAPI.URL', 'http://aribaweb.org/api'
+        systemProperty 'AWAPI.RootDirectory', "${projectDir.absolutePath}/doc/api"
+
+        minHeapSize = '256m'
+        maxHeapSize = '256m'
+
+        jvmArgs = getJava17JvmArgs() + [
+            '-Xdebug',
+            '-Xrunjdwp:transport=dt_socket,address=7002,server=y,suspend=n'
+        ]
+
+        environment 'CATALINA_HOME', catalinaHome
+        environment 'CATALINA_BASE', catalinaBase
+        environment 'ARIBAWEB_HOME', catalinaBase
+        environment 'AW_HOME', catalinaBase
+        environment 'ARIBA_AWRELOAD', 'true'
+        environment 'AW_RELOAD_CLASSES_ROOT', "${catalinaBase}/webapps/site/WEB-INF/classes"
+        environment 'ARIBA_AW_SEARCH_PATH', rootProject.getAwSearchPath()
+        
+        println "Launching public site application on http://localhost:7080/site/AribaWeb"
+    }
+}
+
+tasks.register('groovy', JavaExec) {
+    group = 'application'
+    description = 'Runs a Groovy script specified via -Pscript and -Pargs'
+    classpath = files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
+    mainClass = 'org.codehaus.groovy.tools.GroovyStarter'
+    
+    // Build classpath for the script
+    def scriptClasspath = files(
+        "${rootProject.projectDir}/lib/ext/groovy-all.jar",
+        "${rootProject.projectDir}/lib/ext/servlet-api.jar"
+    )
+    subprojects.each { sub ->
+        sub.plugins.withId('java-library') {
+            scriptClasspath += sub.tasks.named('jar')
+        }
+    }
+    
+    doFirst {
+        def scriptFile = project.findProperty('script')
+        if (!scriptFile) {
+            throw new GradleException("Please specify script file via -Pscript, e.g. -Pscript=bin/myscript.groovy")
+        }
+        def scriptArgs = project.findProperty('args') ?: ""
+        
+        args = [
+            '--main', 'groovy.ui.GroovyMain',
+            '--classpath', scriptClasspath.asPath,
+            scriptFile
+        ]
+        if (!scriptArgs.isEmpty()) {
+            args.addAll(scriptArgs.split(' '))
+        }
+    }
+    jvmArgs = rootProject.getJava17JvmArgs()
+}
+
+tasks.register('groovyLucene', JavaExec) {
+    group = 'application'
+    description = 'Runs a Groovy script with Lucene and app.Demo on the classpath'
+    classpath = files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
+    mainClass = 'org.codehaus.groovy.tools.GroovyStarter'
+    
+    def scriptClasspath = files(
+        "${rootProject.projectDir}/lib/ext/groovy-all.jar",
+        "${rootProject.projectDir}/lib/ext/servlet-api.jar"
+    )
+    subprojects.each { sub ->
+        sub.plugins.withId('java-library') {
+            scriptClasspath += sub.tasks.named('jar')
+        }
+    }
+    scriptClasspath += fileTree(dir: "${rootProject.projectDir}/lib/ext-demo", include: ['*.jar'])
+    scriptClasspath += files(project(':examples:Demo').tasks.named('jar'))
+    
+    doFirst {
+        def scriptFile = project.findProperty('script')
+        if (!scriptFile) {
+            throw new GradleException("Please specify script file via -Pscript, e.g. -Pscript=bin/myscript.groovy")
+        }
+        def scriptArgs = project.findProperty('args') ?: ""
+        
+        args = [
+            '--main', 'groovy.ui.GroovyMain',
+            '--classpath', scriptClasspath.asPath,
+            scriptFile
+        ]
+        if (!scriptArgs.isEmpty()) {
+            args.addAll(scriptArgs.split(' '))
+        }
+    }
+    jvmArgs = rootProject.getJava17JvmArgs()
 }
 
 // 7. Extend Clean Task
