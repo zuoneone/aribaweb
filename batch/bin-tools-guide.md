@@ -29,24 +29,37 @@ cd E:\work2026\aribaweb
 .\bin\aw.bat <命令> [参数]
 ```
 
-### 内置命令
+### 运行模式
 
-| 命令 | 说明 |
-|-----|------|
-| `help` | 显示帮助信息 |
-| `create-project` | 创建新的 AribaWeb 项目 |
+`aw.bat` 支持两种运行模式：
+
+#### 1. 内置命令模式
+
+第一个参数匹配内置命令时，会调用 `tools/build-commands.xml` 中对应的 Ant 目标：
+
+| 命令 | 别名 | 说明 |
+|-----|------|------|
+| `help` | `-h`, `-help` | 显示帮助信息 |
+| `create-project` | 无 | 创建新的 AribaWeb 项目 |
+| _(无参数)_ | — | 进入 Welcome 交互模式，提示创建项目或退出 |
 
 #### 示例
 
 ```batch
 rem 显示帮助
 .\bin\aw.bat help
+.\bin\aw.bat -help
 
 rem 创建新项目
 .\bin\aw.bat create-project MyProject
+
+rem 无参数运行，进入交互模式
+.\bin\aw.bat
 ```
 
-### 运行 Ant 命令
+#### 2. 直接命令模式（运行 Ant 或其他命令）
+
+第一个参数不是内置命令时，`aw.bat` 将其作为外部命令直接执行（最常用的是 `ant`）：
 
 ```batch
 rem 编译所有模块
@@ -58,6 +71,8 @@ rem 清理构建产物
 rem 编译单个模块
 .\bin\aw.bat ant -f src/aribaweb/build.xml jar
 ```
+
+> **原理**：`aw.bat` 将 `ant` 及后续参数直接传递给 `%ANT_HOME%\bin\ant.bat` 执行。也可以运行其他任意命令，如 `.\bin\aw.bat java -version`。
 
 ---
 
@@ -76,10 +91,20 @@ start.bat
 
 ### 等价命令
 
+`start.bat` 本质上执行的是以下命令（简化版）：
+
 ```batch
 cd E:\work2026\aribaweb
 .\bin\aw.bat ant -f build.xml tomcat-build-browse
 ```
+
+实际执行（含完整参数）：
+
+```batch
+.\bin\aw.bat ant -emacs -logger org.apache.tools.ant.NoBannerLogger -f build.xml tomcat-build-browse
+```
+
+> `-emacs` 和 `-logger` 参数用于格式化 Ant 输出，简化版命令也同样可以正常工作。
 
 ---
 
@@ -124,6 +149,7 @@ rem 启动开发模式
 .\bin\aw.bat ant -f build.xml tomcat-build-browse
 
 rem 访问地址
+rem /AribaWeb 是 AribaWeb 框架的默认欢迎页路径（对应 Demo 应用的入口）
 http://localhost:9080/Demo/AribaWeb
 ```
 
@@ -133,7 +159,7 @@ http://localhost:9080/Demo/AribaWeb
 rem 启动生产模式
 .\bin\aw.bat ant -f build.xml tomcat-build-browse -Ddebug.off=true
 
-rem 访问地址
+rem 访问地址（/AribaWeb 是 AribaWeb 框架的默认欢迎页路径）
 http://localhost:9080/Demo/AribaWeb
 ```
 
@@ -187,15 +213,16 @@ E:\work2026\aribaweb\webapps\Demo\
 | **创建项目** | `.\bin\aw.bat create-project MyApp` |
 | **生产模式** | `.\bin\aw.bat ant -f build.xml tomcat-build-browse -Ddebug.off=true` |
 
+
 ---
 
-## 七、与 2026 目录脚本对比
+## 七、新旧工具对比
 
 | 特性 | bin/aw.bat | 2026/make.ps1 | 2026/build-only.ps1 |
 |-----|-----------|---------------|---------------------|
 | 编译项目 | ✅ | ✅ | ✅ |
 | 启动 Tomcat | ✅ | ✅ | ❌ |
-| 生产模式 | ❌ | ✅ | ✅ |
+| 生产模式 | ✅ | ✅ | ✅ |
 | 资源重命名 | ❌ | ✅ | ✅ |
 | 默认端口 | 9080 | 8080 | - |
 | 部署目录 | webapps/Demo | build/tomcat-bases/Demo | build/tomcat-bases/Demo |
@@ -258,7 +285,9 @@ Tomcat 默认配置（`conf/server.xml`）：
 ${catalina.base.dir}/conf/server.xml
 ```
 
-**实际路径**：`build/tomcat-bases/Demo/conf/server.xml`
+**实际路径（两种模式不同）**：
+- 共享模式（`aw.bat` 默认）：`${catalina.base.dir}/conf/server.xml`（即项目根目录下 `conf/`）
+- 独立模式（`make.ps1`）：`build/tomcat-bases/Demo/conf/server.xml`
 
 ### 自动配置流程
 
@@ -287,12 +316,18 @@ ${catalina.base.dir}/conf/server.xml
 
 ### 关键参数说明
 
-| 参数 | 说明 | 默认值 |
+> **术语说明**：`catalina.home.dir` 和 `catalina.base.dir` 是 Ant 构建脚本中的属性名；对应的环境变量名为 `CATALINA_HOME` 和 `CATALINA_BASE`。
+
+| 参数（Ant 属性） | 说明 | 默认值 |
 |-----|------|-------|
-| `catalina.base.dir` | 应用专属配置目录 | `build/tomcat-bases/${name}` |
-| `catalina.home.dir` | Tomcat 安装目录 | `C:\apache-tomcat-9.0.118`（外部）|
+| `catalina.home.dir` | Tomcat 安装目录（对应 `CATALINA_HOME`） | `C:\apache-tomcat-9.0.118`（外部）|
+| `catalina.base.dir` | 应用专属配置目录（对应 `CATALINA_BASE`） | 见下方说明 |
 | `servlet.port` | HTTP 端口 | 9080（共享模式）|
 | `tomcat.port.prefix.override` | 端口前缀覆盖 | 9（共享模式）|
+
+> **`catalina.base.dir` 默认值说明**：
+> - **共享模式**（`aw.bat` 默认）：`catalina.base.dir` 被设置为项目根目录（`AW_HOME`），即 `E:\work2026\aribaweb`
+> - **独立模式**（`make.ps1`）：默认值为 `build/tomcat-bases/${name}`，每个应用有独立的配置目录
 
 ### 部署路径对比
 
@@ -323,20 +358,20 @@ ${catalina.base.dir}/conf/server.xml
 
 #### 当前配置
 
-| 参数 | 值 | 说明 |
-|-----|------|------|
-| `catalina.home` | `C:\apache-tomcat-9.0.118` | Tomcat 安装目录 |
-| `catalina.base` | `E:\work2026\aribaweb` | 应用基础目录 |
+| 参数（Ant 属性） | 值 | 说明 |
+|----------------|-----|------|
+| `catalina.home.dir` | `C:\apache-tomcat-9.0.118` | Tomcat 安装目录（对应环境变量 `CATALINA_HOME`） |
+| `catalina.base.dir` | `E:\work2026\aribaweb` | 应用基础目录（对应环境变量 `CATALINA_BASE`），此为共享模式下的设置 |
 
 #### 目录结构映射
 
 ```
-C:\apache-tomcat-9.0.118/     ← catalina.home (Tomcat 安装)
+C:\apache-tomcat-9.0.118/     ← catalina.home.dir / CATALINA_HOME (Tomcat 安装目录)
 ├── bin/
 ├── lib/
 └── conf/
 
-E:\work2026\aribaweb/          ← catalina.base (应用基础)
+E:\work2026\aribaweb/          ← catalina.base.dir / CATALINA_BASE (应用基础目录，共享模式)
 ├── conf/                      ← 应用专属配置
 ├── webapps/                   ← 应用部署目录
 │   └── Demo/
@@ -345,10 +380,10 @@ E:\work2026\aribaweb/          ← catalina.base (应用基础)
 
 #### 两种运行模式
 
-| 模式 | catalina.base | 说明 |
-|-----|--------------|------|
-| **共享模式** | 项目根目录 | 所有应用共享同一个 Tomcat 实例 |
-| **独立模式** | `build/tomcat-bases/${name}` | 每个应用有独立的配置和端口 |
+| 模式 | `catalina.base.dir`（`CATALINA_BASE`） | 说明 |
+|-----|----------------------------------------|------|
+| **共享模式**（`aw.bat` 默认） | 项目根目录（`AW_HOME`） | 所有应用共享同一个 Tomcat 实例，端口 9080 |
+| **独立模式**（`make.ps1`） | `build/tomcat-bases/${name}` | 每个应用有独立的配置和端口，默认端口 8080 |
 
 ---
 
