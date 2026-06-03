@@ -161,12 +161,17 @@ E:\work2026\aribaweb\webapps\Demo\
 | `JAVA_HOME` | JDK 安装路径 | `C:\Program Files\Java\jdk1.8.0_392` |
 | `ANT_HOME` | Ant 安装路径 | `C:\apache-ant-1.10.17` |
 
+### 必需环境变量（续）
+
+| 变量 | 说明 | 默认值 |
+|-----|------|-------|
+| `CATALINA_HOME` | Tomcat 安装路径 | **必需，无默认值** |
+
 ### 可选环境变量
 
 | 变量 | 说明 | 默认值 |
 |-----|------|-------|
 | `AW_HOME` | 项目根目录 | 自动检测 |
-| `CATALINA_HOME` | Tomcat 安装路径 | 自动检测 |
 
 ---
 
@@ -285,7 +290,7 @@ ${catalina.base.dir}/conf/server.xml
 | 参数 | 说明 | 默认值 |
 |-----|------|-------|
 | `catalina.base.dir` | 应用专属配置目录 | `build/tomcat-bases/${name}` |
-| `catalina.home.dir` | Tomcat 安装目录 | `tools/tomcat` |
+| `catalina.home.dir` | Tomcat 安装目录 | `C:\apache-tomcat-9.0.118`（外部）|
 | `servlet.port` | HTTP 端口 | 9080（共享模式）|
 | `tomcat.port.prefix.override` | 端口前缀覆盖 | 9（共享模式）|
 
@@ -293,7 +298,7 @@ ${catalina.base.dir}/conf/server.xml
 
 | 部署方式 | catalina.base.dir | webapps 目录 | 端口 |
 |---------|------------------|-------------|------|
-| 官方脚本 | 项目根目录 | `webapps/` | 9080 |
+| 官方脚本 | 不设置（使用默认） | `webapps/` | 9080 |
 | make.ps1 | `build/tomcat-bases/Demo` | `webapps/Demo` | 8080 |
 
 ### Tomcat 来源说明
