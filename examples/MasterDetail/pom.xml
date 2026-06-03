@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.aribaweb</groupId>
+        <artifactId>aribaweb-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>aribaweb-masterdetail</artifactId>
+    <packaging>war</packaging>
+
+    <properties>
+        <app.name>MasterDetail</app.name>
+        <servlet.class>ariba.ui.servletadaptor.AWDispatcherServlet</servlet.class>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-expr</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-widgets</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-metaui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-metaui-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-groovyloader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-appcore</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>log4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>groovy-all</artifactId>
+        </dependency>
+
+        <!-- JPA / Hibernate dependencies -->
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>antlr-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>asm-attrs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>c3p0</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>cglib-nodep</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>commons-collections</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>commons-logging</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>dom4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>ejb3-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>hibernate-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>hibernate-commons-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>hibernate-entitymanager</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>hibernate-tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>hibernate3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>hsqldb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>javassist</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>jboss-archive-browsing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>jta</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+        </dependency>
+
+        <!-- Compass & Lucene dependencies -->
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>compass</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>lucene-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>lucene-analyzers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>lucene-highlighter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>lucene-queries</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>lucene-snowball</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>lucene-spellchecker</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>${project.basedir}</sourceDirectory>
+        <finalName>MasterDetail</finalName>
+
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>2.1.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy</artifactId>
+                        <version>3.0.15</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>generate-masterdetail-configs</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <scripts>
+                                <script><![CDATA[
+                                    import java.nio.file.*
+
+                                    def srcDir = project.basedir
+                                    def outputDir = new File(project.build.outputDirectory)
+                                    def docrootTarget = new File(outputDir, "docroot")
+                                    docrootTarget.mkdirs()
+
+                                    // Helper function to copy files recursively
+                                    def copyDirWithFilters = { File source, File target, Closure filter ->
+                                        if (!source.exists()) return
+                                        source.eachFileRecurse { File file ->
+                                            def relative = source.toPath().relativize(file.toPath()).toString()
+                                            if (filter(file, relative)) {
+                                                def destFile = new File(target, relative)
+                                                if (file.isDirectory()) {
+                                                    destFile.mkdirs()
+                                                } else {
+                                                    destFile.parentFile.mkdirs()
+                                                    Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // 1. Copy docroot resources: exclusions are resource/, build/, target/
+                                    log.info("Copying MasterDetail docroot resources...")
+                                    copyDirWithFilters(srcDir, docrootTarget, { File file, String rel ->
+                                        def normalizedRel = rel.replace('\\', '/')
+                                        if (normalizedRel.startsWith("resource/") || 
+                                            normalizedRel.startsWith("build/") || 
+                                            normalizedRel.startsWith("target/") || 
+                                            normalizedRel.startsWith("pom.xml")) {
+                                            return false
+                                        }
+                                        if (file.isDirectory()) return true
+                                        return file.name.endsWith(".gif") || file.name.endsWith(".jpg") || file.name.endsWith(".css") || file.name.endsWith(".js")
+                                    })
+
+                                    // 2. Copy resource/webserver (excluding branding/) -> docroot/
+                                    def webserverSrc = new File(srcDir, "resource/webserver")
+                                    if (webserverSrc.exists()) {
+                                        copyDirWithFilters(webserverSrc, docrootTarget, { File file, String rel ->
+                                            def normalizedRel = rel.replace('\\', '/')
+                                            return !normalizedRel.startsWith("branding")
+                                        })
+                                    }
+
+                                    // 3. Copy resource/webserver/branding -> docroot/config/branding
+                                    def brandingSrc = new File(srcDir, "resource/webserver/branding")
+                                    def brandingDest = new File(docrootTarget, "config/branding")
+                                    if (brandingSrc.exists()) {
+                                        copyDirWithFilters(brandingSrc, brandingDest, { f, rel -> true })
+                                    }
+
+                                    // 4. Generate persistence.xml:
+                                    log.info("Generating persistence.xml...")
+                                    def dbDir = new File(System.getProperty("java.io.tmpdir"), "MasterDetail-db").absolutePath.replace('\\', '/')
+                                    def dbUrl = "file:/${dbDir}"
+                                    def compassDir = new File(System.getProperty("java.io.tmpdir"), "MasterDetail-lucene").absolutePath.replace('\\', '/')
+                                    def compassUrl = "file:///${compassDir}"
+
+                                    def persistenceXmlText = """<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_1_0.xsd"
+    version="1.0">
+
+    <persistence-unit name="Main">
+       <class>ariba.appcore.Global</class>
+       <class>ariba.appcore.Group</class>
+       <class>ariba.appcore.Permission</class>
+       <class>ariba.appcore.Principal</class>
+       <class>ariba.appcore.User</class>
+       <class>model.Category</class>
+       <class>model.ExtendedUser</class>
+       <class>model.Issue</class>
+       <class>model.Note</class>
+
+       <properties>
+          <!-- Scan for annotated classes and Hibernate mapping XML files -->
+          <property name="hibernate.archive.autodetection" value="class, hbm"/>
+
+          <!-- Interceptor needed for ContextGroup-wide change propagation -->
+          <property name="hibernate.ejb.interceptor" value="ariba.ui.meta.jpa.HibernateInterceptor"/>
+
+          <property name="compass.engine.connection" value="${compassUrl}"/>
+          <property name="hibernate.ejb.event.post-insert" value="org.compass.gps.device.hibernate.embedded.CompassEventListener" />
+          <property name="hibernate.ejb.event.post-update" value="org.compass.gps.device.hibernate.embedded.CompassEventListener" />
+          <property name="hibernate.ejb.event.post-delete" value="org.compass.gps.device.hibernate.embedded.CompassEventListener" />
+          <property name="hibernate.ejb.event.post-collection-recreate" value="org.compass.gps.device.hibernate.embedded.CompassEventListener" />
+          <property name="hibernate.ejb.event.post-collection-remove" value="org.compass.gps.device.hibernate.embedded.CompassEventListener" />
+          <property name="hibernate.ejb.event.post-collection-update" value="org.compass.gps.device.hibernate.embedded.CompassEventListener" />
+
+          <property name="hibernate.connection.driver_class" value="org.hsqldb.jdbcDriver"/>
+          <property name="hibernate.connection.url" value="jdbc:hsqldb:${dbUrl}/db"/>
+          <property name="hibernate.connection.username" value="sa"/>
+          <property name="hibernate.connection.password" value=""/>
+          <property name="hibernate.dialect" value="org.hibernate.dialect.HSQLDialect"/>
+
+          <property name="hibernate.c3p0.min_size" value="5"/>
+          <property name="hibernate.c3p0.max_size" value="20"/>
+          <property name="hibernate.c3p0.timeout" value="300"/>
+          <property name="hibernate.c3p0.max_statements" value="50"/>
+          <property name="hibernate.c3p0.idle_test_period" value="3000"/>
+
+          <!-- Create schema on every run -->
+          <property name="hibernate.hbm2ddl.auto" value="update"/>
+      </properties>
+   </persistence-unit>
+</persistence>
+"""
+                                    def metaInfDir = new File(outputDir, "META-INF")
+                                    metaInfDir.mkdirs()
+                                    new File(metaInfDir, "persistence.xml").text = persistenceXmlText
+
+                                    // Copy log4j.properties and c3p0.properties from tools/templates
+                                    def templatesSrc = new File(srcDir, "../../tools/templates")
+                                    if (templatesSrc.exists()) {
+                                        Files.copy(new File(templatesSrc, "log4j.properties").toPath(), new File(outputDir, "log4j.properties").toPath(), StandardCopyOption.REPLACE_EXISTING)
+                                        Files.copy(new File(templatesSrc, "c3p0.properties").toPath(), new File(outputDir, "c3p0.properties").toPath(), StandardCopyOption.REPLACE_EXISTING)
+                                    }
+
+                                    // 5. Generate aribaweb.properties:
+                                    log.info("Generating aribaweb.properties...")
+                                    def propsFile = new File(outputDir, "aribaweb.properties")
+                                    def writer = new PrintWriter(propsFile)
+                                    writer.println("packaged-resource-extensions=awl,oss")
+                                    writer.println("use-namespace-from-package=ariba.ui.meta")
+                                    writer.println("depends-on=ariba.groovyloader,ariba.metaui-jpa")
+                                    writer.close()
+
+                                    // 6. Generate web.xml:
+                                    log.info("Generating web.xml...")
+                                    def webXmlFile = new File(project.build.directory, "web.xml")
+                                    webXmlFile.parentFile.mkdirs()
+                                    webXmlFile.text = """<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+  <display-name>MasterDetail Application</display-name>
+  <description>MasterDetail Application</description>
+  <servlet>
+    <servlet-name>MasterDetail</servlet-name>
+    <servlet-class>ariba.ui.servletadaptor.AWDispatcherServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>MasterDetail</servlet-name>
+    <url-pattern>/AribaWeb/*</url-pattern>
+  </servlet-mapping>
+</web-app>
+"""
+                                ]]></script>
+                            </scripts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.2</version>
+                <configuration>
+                    <webXml>${project.build.directory}/web.xml</webXml>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <packagingIncludes>
+                        WEB-INF/lib/*.jar,
+                        WEB-INF/classes/**,
+                        docroot/**,
+                        **
+                    </packagingIncludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>deploy-to-webapps</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${maven.multiModuleProjectDirectory}/webapps/MasterDetail</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/${project.build.finalName}</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
