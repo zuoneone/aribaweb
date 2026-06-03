@@ -11,6 +11,14 @@ allprojects {
     }
 }
 
+configurations {
+    servletApi
+}
+
+dependencies {
+    servletApi 'javax.servlet:javax.servlet-api:4.0.1'
+}
+
 subprojects { project ->
     // Skip the examples parent container module
     if (project.path == ':examples') return
@@ -32,9 +40,11 @@ subprojects { project ->
             }
             resources {
                 srcDirs = ['.']
-                include '**/*.awl', '**/*.properties', '**/*.xml', '**/*.png', '**/*.jpg', '**/*.gif', '**/*.js', '**/*.css'
+                include '**/*.awl', '**/*.properties', '**/*.xml', '**/*.png', '**/*.jpg', '**/*.gif', '**/*.js', '**/*.css',
+                        '**/*.htm', '**/*.oss', '**/*.awz', '**/*.afr', '**/*.csv'
                 exclude 'build/**'
                 exclude 'adaptor-jdk15/**'
+                exclude '**/resource/**'
             }
         }
     }
@@ -42,6 +52,35 @@ subprojects { project ->
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
         options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+
+    tasks.named('jar') {
+        archiveFileName = "ariba.${project.name}.jar"
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        exclude 'aribaweb.properties'
+        if (file("aribaweb.properties").exists()) {
+            metaInf {
+                from "aribaweb.properties"
+            }
+        }
+    }
+
+    tasks.named('processResources') {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        
+        def srcResourcePath = "resource/ariba"
+        if (project.name in ['util', 'expr']) {
+            srcResourcePath = "ariba"
+        } else if (project.name in ['metaui', 'awreload', 'metaui-jpa', 'groovyloader']) {
+            srcResourcePath = ""
+        }
+        
+        def resourceDirOnDisk = file(srcResourcePath.isEmpty() ? "resource" : "${srcResourcePath}/resource")
+        if (resourceDirOnDisk.exists()) {
+            from(resourceDirOnDisk) {
+                into "resource"
+            }
+        }
     }
 
     plugins.withId('groovy') {
@@ -58,3 +97,763 @@ subprojects { project ->
         implementation fileTree(dir: "${rootProject.projectDir}/lib/ext", include: ['*.jar'])
     }
 }
+
+// --- Ant Target Migration Tasks ---
+
+def getCatalinaHome() {
+    // Priority 1: Project's tools/tomcat directory (AW_HOME\tools\tomcat)
+    def projectTomcat = file("${projectDir.absolutePath}/tools/tomcat")
+    if (projectTomcat.exists()) {
+        return projectTomcat.absolutePath
+    }
+    
+    // Priority 2: System environment variable
+    def home = System.getenv('CATALINA_HOME')
+    if (home) {
+        return file(home).absolutePath
+    }
+    
+    throw new GradleException("Tomcat installation not found. Please ensure tools/tomcat exists under the project root at tools/tomcat, or the CATALINA_HOME environment variable is set.")
+}
+
+def getJava17JvmArgs() {
+    return [
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.io=ALL-UNNAMED',
+        '--add-opens=java.base/java.nio=ALL-UNNAMED',
+        '--add-opens=java.base/java.math=ALL-UNNAMED',
+        '--add-opens=java.base/java.net=ALL-UNNAMED',
+        '--add-opens=java.base/java.text=ALL-UNNAMED',
+        '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED'
+    ]
+}
+
+def openBrowser(String url) {
+    try {
+        if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.desktop.isSupported(java.awt.Desktop.Action.BROWSE)) {
+            java.awt.Desktop.desktop.browse(new URI(url))
+        } else {
+            def os = System.getProperty("os.name").toLowerCase()
+            if (os.contains("windows")) {
+                Runtime.getRuntime().exec("cmd /c start ${url}")
+            } else if (os.contains("mac")) {
+                Runtime.getRuntime().exec("open ${url}")
+            } else {
+                Runtime.getRuntime().exec("xdg-open ${url}")
+            }
+        }
+    } catch (Exception e) {
+        println "Failed to open browser: ${e.message}"
+    }
+}
+
+// 1. Configure exploded webapp task and web.xml generation for war projects inside subprojects
+subprojects { sub ->
+    sub.plugins.withId('war') {
+        def webXmlFile = sub.file("${sub.buildDir}/generated/web.xml")
+        def propsFile = sub.file("${sub.buildDir}/generated/webxml.properties")
+        
+        def generateWebXml = sub.tasks.register('generateWebXml', JavaExec) {
+            dependsOn ':aribaweb:jar'
+            
+            classpath = rootProject.configurations.servletApi
+            classpath += fileTree(dir: "${rootProject.projectDir}/lib/ext", include: ["*.jar"])
+            classpath += files(
+                rootProject.project(':util').tasks.named('jar'),
+                rootProject.project(':expr').tasks.named('jar'),
+                rootProject.project(':aribaweb').tasks.named('jar')
+            )
+            
+            mainClass = 'ariba.ui.aribaweb.util.AWEvaluateTemplateFile'
+            
+            doFirst {
+                webXmlFile.parentFile.mkdirs()
+                propsFile.parentFile.mkdirs()
+                
+                def props = new Properties()
+                def appName = (sub.name == 'GuestBook') ? 'Main' : 'AribaWeb'
+                props.setProperty('servlet.name', sub.name)
+                props.setProperty('servlet.displayName', sub.name)
+                props.setProperty('servlet.description', "Web application ${sub.name}")
+                props.setProperty('servlet.class', 'ariba.ui.servletadaptor.AWDispatcherServlet')
+                props.setProperty('app.name', appName)
+                props.setProperty('servlet.init.onstartup', 'false')
+                
+                propsFile.withOutputStream { props.store(it, null) }
+            }
+            
+            args = [
+                "${rootProject.projectDir}/tools/templates/web.xml",
+                propsFile.absolutePath,
+                webXmlFile.absolutePath
+            ]
+            jvmArgs = rootProject.getJava17JvmArgs()
+        }
+
+        def aribawebPropertiesFile = sub.file("${sub.buildDir}/generated/aribaweb.properties")
+        def aribawebPropsInputFile = sub.file("${sub.buildDir}/generated/aribaweb.properties.input")
+        
+        def generateAribawebProperties = sub.tasks.register('generateAribawebProperties', JavaExec) {
+            dependsOn ':aribaweb:jar'
+            
+            classpath = rootProject.configurations.servletApi
+            classpath += fileTree(dir: "${rootProject.projectDir}/lib/ext", include: ["*.jar"])
+            classpath += files(
+                rootProject.project(':util').tasks.named('jar'),
+                rootProject.project(':expr').tasks.named('jar'),
+                rootProject.project(':aribaweb').tasks.named('jar')
+            )
+            
+            mainClass = 'ariba.ui.aribaweb.util.AWEvaluateTemplateFile'
+            
+            doFirst {
+                aribawebPropertiesFile.parentFile.mkdirs()
+                aribawebPropsInputFile.parentFile.mkdirs()
+                
+                def props = new Properties()
+                props.setProperty('aw.useNamespaceFromPackage', 'ariba.ui.meta')
+                
+                if (sub.name in ['Demo', 'AtIssue', 'MasterDetail']) {
+                    props.setProperty('aw.packagedResourceExtensions', 'awl,oss,csv,xml')
+                } else {
+                    props.setProperty('aw.packagedResourceExtensions', 'awl,oss')
+                }
+                
+                if (sub.name in ['AtIssue', 'MasterDetail']) {
+                    props.setProperty('aw.preInitializer', 'ariba.appcore.Initialization.initialize')
+                    props.setProperty('aw.allowAccessWithoutLogin', 'true')
+                    props.setProperty('aw.dependsOn', 'ariba.groovyloader,ariba.metaui-jpa')
+                } else if (sub.name == 'Demo') {
+                    props.setProperty('aw.dependsOn', 'ariba.groovyloader,ariba.metaui')
+                } else if (sub.name == 'GuestBook') {
+                    props.setProperty('aw.dependsOn', 'ariba.metaui')
+                }
+                
+                aribawebPropsInputFile.withOutputStream { props.store(it, null) }
+            }
+            
+            args = [
+                "${rootProject.projectDir}/tools/templates/aribaweb.properties",
+                aribawebPropsInputFile.absolutePath,
+                aribawebPropertiesFile.absolutePath
+            ]
+            jvmArgs = rootProject.getJava17JvmArgs()
+        }
+
+        def persistenceXmlFile = sub.file("${sub.buildDir}/generated/persistence.xml")
+        def persistencePropsFile = sub.file("${sub.buildDir}/generated/persistence.properties")
+        def generatePersistenceXml = null
+
+        if (sub.name in ['AtIssue', 'MasterDetail']) {
+            generatePersistenceXml = sub.tasks.register('generatePersistenceXml', JavaExec) {
+                dependsOn ':aribaweb:jar'
+                
+                classpath = rootProject.configurations.servletApi
+                classpath += fileTree(dir: "${rootProject.projectDir}/lib/ext", include: ["*.jar"])
+                classpath += files(
+                    rootProject.project(':util').tasks.named('jar'),
+                    rootProject.project(':expr').tasks.named('jar'),
+                    rootProject.project(':aribaweb').tasks.named('jar')
+                )
+                
+                mainClass = 'ariba.ui.aribaweb.util.AWEvaluateTemplateFile'
+                
+                doFirst {
+                    persistenceXmlFile.parentFile.mkdirs()
+                    persistencePropsFile.parentFile.mkdirs()
+                    
+                    def dbDir = new File(System.getProperty("java.io.tmpdir"), "${sub.name}-db")
+                    def databaseUrl = dbDir.toURI().toURL().toString()
+                    if (!databaseUrl.endsWith("/")) {
+                        databaseUrl += "/"
+                    }
+                    
+                    def compassDir = new File(System.getProperty("java.io.tmpdir"), "${sub.name}-lucene")
+                    def compassEngineConnection = "ram://metaui-compass-index"
+                    if (!compassDir.absolutePath.contains(":") && !compassDir.absolutePath.contains("~")) {
+                        compassEngineConnection = compassDir.toURI().toURL().toString().replaceAll(/^file:\/([^\/].*)/, "file:///\$1")
+                    }
+                    
+                    def props = new Properties()
+                    props.setProperty('hibernate.connection.driver_class', 'org.hsqldb.jdbcDriver')
+                    props.setProperty('hibernate.dialect', 'org.hibernate.dialect.HSQLDialect')
+                    props.setProperty('hibernate.connection.username', 'sa')
+                    props.setProperty('hibernate.connection.password', '')
+                    props.setProperty('hibernate.hbm2ddl.auto', 'update')
+                    props.setProperty('hibernate.connection.url', "jdbc:hsqldb:${databaseUrl}db")
+                    props.setProperty('compass.engine.connection', compassEngineConnection)
+                    
+                    persistencePropsFile.withOutputStream { props.store(it, null) }
+                }
+                
+                args = [
+                    "${rootProject.projectDir}/tools/templates/persistence.xml",
+                    persistencePropsFile.absolutePath,
+                    persistenceXmlFile.absolutePath
+                ]
+                jvmArgs = rootProject.getJava17JvmArgs()
+            }
+        }
+        
+        sub.tasks.named('jar') {
+            dependsOn generateWebXml, generateAribawebProperties
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            
+            // Package aribaweb.properties into META-INF
+            metaInf {
+                from(aribawebPropertiesFile)
+            }
+            
+            // Docroot resources copy
+            into('docroot') {
+                from(sub.projectDir) {
+                    include '**/*.gif', '**/*.jpg', '**/*.png', '**/*.css', '**/*.js'
+                    exclude 'build/**', 'resource/**'
+                }
+            }
+            if (sub.file("resource/webserver").exists()) {
+                into('docroot') {
+                    from(sub.file("resource/webserver")) {
+                        exclude 'branding/'
+                    }
+                }
+            }
+            if (sub.file("resource/webserver/branding").exists()) {
+                into('docroot/config/branding') {
+                    from(sub.file("resource/webserver/branding"))
+                }
+            }
+            
+            if (sub.name in ['AtIssue', 'MasterDetail']) {
+                dependsOn generatePersistenceXml
+                metaInf {
+                    from(persistenceXmlFile)
+                }
+                from("${rootProject.projectDir}/tools/templates") {
+                    include 'log4j.properties', 'c3p0.properties'
+                }
+                
+                // Inline examples:appcore classes and resources into the jar
+                def appcoreProject = rootProject.project(':examples:appcore')
+                dependsOn appcoreProject.tasks.named('classes')
+                from(appcoreProject.sourceSets.main.output)
+            }
+        }
+
+        sub.war {
+            dependsOn generateWebXml, generateAribawebProperties, sub.tasks.named('jar')
+            webXml = webXmlFile
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            
+            // Include the project's own JAR inside WEB-INF/lib
+            classpath = classpath + files(sub.tasks.named('jar'))
+            
+            // Exclude project compiled classes/resources from WEB-INF/classes
+            exclude 'WEB-INF/classes/**'
+            
+            if (sub.name in ['AtIssue', 'MasterDetail']) {
+                // Exclude ariba.appcore.jar from WEB-INF/lib (since it is inlined!)
+                classpath = classpath.filter { File file -> !file.name.contains('ariba.appcore') }
+            }
+
+            // Extract docroot resources from all dependency ariba.*.jar files and the project's own jar
+            from({
+                def jarFiles = classpath.files + files(sub.tasks.named('jar')).files
+                def aribaJars = jarFiles.findAll { it.name.startsWith('ariba.') && it.name.endsWith('.jar') }
+                aribaJars.collect { zipTree(it) }
+            }) {
+                include 'docroot/**'
+                duplicatesStrategy = DuplicatesStrategy.INCLUDE
+            }
+        }
+
+        tasks.register('webapp', Sync) {
+            group = 'build'
+            description = 'Assembles the exploded web application directory'
+            dependsOn generateWebXml, generateAribawebProperties
+            if (sub.name in ['AtIssue', 'MasterDetail']) {
+                dependsOn generatePersistenceXml
+            }
+            into "${rootProject.projectDir}/webapps/${project.name}"
+            with war
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        }
+    }
+}
+
+// 2. Aggregated Build Tasks
+tasks.register('jars') {
+    group = 'build'
+    description = 'Assembles JAR files for all library subprojects'
+}
+
+tasks.register('wars') {
+    group = 'build'
+    description = 'Assembles WAR files for all example web applications'
+    dependsOn jars
+}
+
+tasks.register('webapps') {
+    group = 'build'
+    description = 'Assembles exploded web application directories for all example apps'
+    dependsOn jars
+}
+
+subprojects { sub ->
+    sub.plugins.withId('java-library') {
+        rootProject.tasks.named('jars') {
+            dependsOn "${sub.path}:jar"
+        }
+    }
+    sub.plugins.withId('war') {
+        rootProject.tasks.named('wars') {
+            dependsOn "${sub.path}:war"
+        }
+        rootProject.tasks.named('webapps') {
+            dependsOn "${sub.path}:webapp"
+        }
+    }
+}
+
+// 3. Tomcat Configuration & Execution
+tasks.register('ensureTomcatConf') {
+    group = 'tomcat'
+    description = 'Ensures Tomcat configuration files exist in CATALINA_BASE'
+    
+    // Lazy evaluation to avoid throwing exception during configuration phase if not running Tomcat
+    doLast {
+        def catalinaHome = getCatalinaHome()
+        def catalinaBase = projectDir.absolutePath
+        def confDir = file("${catalinaBase}/conf")
+        
+        if (!confDir.exists()) {
+            println "Copying Tomcat configuration from ${catalinaHome}/conf to ${confDir}"
+            copy {
+                from "${catalinaHome}/conf"
+                into confDir
+            }
+            
+            // Update ports in conf/server.xml
+            def serverXml = file("${confDir}/server.xml")
+            if (serverXml.exists()) {
+                def content = serverXml.text
+                // Replace standard ports (8080, 8005, 8009, 8443) with prefix 9
+                content = content.replace("port=\"8", "port=\"9")
+                content = content.replace("Port=\"8", "Port=\"9")
+                content = content.replace("port=\"9080\"", "port=\"9081\"")
+                content = content.replace("port=\"9005\"", "port=\"9006\"")
+                content = content.replace("port=\"9009\"", "port=\"9010\"")
+                serverXml.text = content
+            }
+            
+            // Enable common loader jars in conf/catalina.properties
+            def catalinaProps = file("${confDir}/catalina.properties")
+            if (catalinaProps.exists()) {
+                def content = catalinaProps.text
+                content = content.replaceAll(/(?ms)^common\.loader=.+?$/) {
+                    'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"'
+                }
+                catalinaProps.text = content
+            }
+        }
+    }
+}
+
+def openBrowserOnStartup = false
+
+tasks.register('tomcat', JavaExec) {
+    group = 'tomcat'
+    description = 'Starts Tomcat with debugger'
+    dependsOn ensureTomcatConf
+
+    // Lazy evaluation of properties to avoid environment exceptions during task registration
+    doFirst {
+        def catalinaHome = getCatalinaHome()
+        def catalinaBase = projectDir.absolutePath
+        def jpdaAddress = '9001'
+        
+        classpath = files("${catalinaHome}/bin/bootstrap.jar", "${catalinaHome}/bin/tomcat-juli.jar")
+        mainClass = 'org.apache.catalina.startup.Bootstrap'
+
+        // System properties
+        systemProperty 'java.util.logging.manager', 'org.apache.juli.ClassLoaderLogManager'
+        systemProperty 'java.util.logging.config.file', "${catalinaBase}/conf/logging.properties"
+        systemProperty 'catalina.home', catalinaHome
+        systemProperty 'catalina.base', catalinaBase
+        systemProperty 'ariba.aribaweb.Debug', 'true'
+
+        // JVM arguments
+        minHeapSize = '256m'
+        maxHeapSize = '256m'
+
+        // Java 17 --add-opens options
+        jvmArgs = getJava17JvmArgs() + [
+            '-Xdebug',
+            "-Xrunjdwp:transport=dt_socket,address=${jpdaAddress},server=y,suspend=n"
+        ]
+
+        // Environment variables
+        environment 'CATALINA_HOME', catalinaHome
+        environment 'CATALINA_BASE', catalinaBase
+        environment 'ARIBAWEB_HOME', catalinaBase
+        environment 'AW_HOME', catalinaBase
+        environment 'ARIBA_AWRELOAD', 'true'
+        environment 'AW_RELOAD_CLASSES_ROOT', "${catalinaBase}/build/classes"
+        
+        println "Launching Tomcat with CATALINA_BASE=${catalinaBase}, CATALINA_HOME=${catalinaHome}"
+        println "JPDA debug port enabled on ${jpdaAddress}"
+        println "Connect via http://localhost:9080/Demo/AribaWeb"
+
+        if (openBrowserOnStartup) {
+            Thread.startDaemon {
+                println "Waiting for Tomcat to start up..."
+                def url = "http://localhost:9081/Demo/AribaWeb"
+                def pingUrl = new URL("http://localhost:9081/Demo/AribaWeb/ad/ping")
+                Thread.sleep(2000)
+                for (int i = 0; i < 45; i++) {
+                    try {
+                        def conn = pingUrl.openConnection()
+                        conn.connectTimeout = 1000
+                        conn.readTimeout = 1000
+                        if (conn.responseCode == 200) {
+                            println "Tomcat is up! Opening browser to ${url}"
+                            openBrowser(url)
+                            break
+                        }
+                    } catch (Exception e) {
+                        // ignore and retry
+                    }
+                    Thread.sleep(1000)
+                }
+            }
+        }
+    }
+}
+
+tasks.register('tomcatBrowse') {
+    group = 'tomcat'
+    description = 'Starts Tomcat and opens browser'
+    doFirst {
+        openBrowserOnStartup = true
+    }
+    finalizedBy tomcat
+}
+
+tasks.register('tomcatBuild') {
+    group = 'tomcat'
+    description = 'Rebuilds exploded WAR directories and starts Tomcat'
+    dependsOn webapps, tomcat
+}
+
+tasks.register('tomcatBuildBrowse') {
+    group = 'tomcat'
+    description = 'Rebuilds exploded WAR directories, starts Tomcat, and opens browser'
+    dependsOn webapps, tomcatBrowse
+}
+
+tasks.register('launch') {
+    group = 'tomcat'
+    description = 'Rebuilds exploded WAR directories, starts Tomcat, and opens browser'
+    dependsOn tomcatBuildBrowse
+}
+
+tasks.register('tomcatExec', Exec) {
+    group = 'tomcat'
+    description = 'Starts Tomcat via the external catalina script'
+    dependsOn webapps, ensureTomcatConf
+
+    // Lazy evaluation to avoid throwing exception during configuration phase
+    doFirst {
+        def catalinaHome = getCatalinaHome()
+        def catalinaBase = projectDir.absolutePath
+        def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+        def catalinaCmd = isWindows ? "${catalinaHome}/bin/catalina.bat" : "${catalinaHome}/bin/catalina.sh"
+
+        commandLine catalinaCmd, 'jpda', 'run'
+
+        environment 'CATALINA_HOME', catalinaHome
+        environment 'CATALINA_BASE', catalinaBase
+        environment 'ARIBAWEB_HOME', catalinaBase
+        environment 'AW_HOME', catalinaBase
+        environment 'ARIBA_AWRELOAD', 'true'
+        environment 'AW_RELOAD_CLASSES_ROOT', "${catalinaBase}/build/classes"
+    }
+}
+
+// 4. Interactive Shell
+tasks.register('groovysh', JavaExec) {
+    group = 'application'
+    description = 'Launches Groovy Console UI with the full project classpath'
+    
+    classpath = files("${rootProject.projectDir}/lib/ext/groovy-all.jar")
+    
+    // Add library JAR tasks and files to classpath
+    def paths = []
+    subprojects.each { sub ->
+        sub.plugins.withId('java-library') {
+            paths << sub.tasks.named('jar')
+        }
+        sub.plugins.withId('war') {
+            paths << sub.tasks.named('war')
+        }
+    }
+    classpath += files(paths)
+    classpath += fileTree(dir: "lib/ext", include: ["*.jar"])
+    classpath += fileTree(dir: "lib/ext-jpa", include: ["*.jar"])
+    classpath += fileTree(dir: "lib/ext-compass", include: ["*.jar"])
+    classpath += configurations.servletApi
+    
+    mainClass = 'groovy.ui.Console'
+    jvmArgs = getJava17JvmArgs()
+}
+
+// 5. Documentation & Site Tasks
+tasks.register('docResources', Copy) {
+    group = 'documentation'
+    description = 'Copies documentation resource files'
+    into file("doc")
+    
+    from("src/site/docroot") {
+        into "site"
+    }
+    from("src/docs/index.html") {
+        into "."
+    }
+    from("src/widgets/resource/webserver/widg/prettify.js") {
+        into "resource"
+    }
+    from("src/widgets/resource/webserver/branding/ariba/widgets.css") {
+        into "resource"
+    }
+}
+
+tasks.register('javadocs', Javadoc) {
+    group = 'documentation'
+    description = 'Generates aggregated Javadocs for all subprojects'
+    
+    def javaProjects = subprojects.findAll { it.plugins.hasPlugin('java-library') && it.path != ':examples:appcore' }
+    source javaProjects.collect { it.sourceSets.main.allJava }
+    classpath = files(javaProjects.collect { it.sourceSets.main.compileClasspath })
+    destinationDir = file("${projectDir}/doc/api")
+    
+    if (JavaVersion.current().isJava8Compatible()) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
+    options.encoding = 'UTF-8'
+}
+
+tasks.register('processDoc', JavaExec) {
+    group = 'documentation'
+    description = 'Processes documentation templates'
+    dependsOn docResources, jars
+    
+    classpath = files("lib/ext/groovy-all.jar")
+    classpath += fileTree(dir: "lib/ext", include: ["*.jar"])
+    classpath += configurations.servletApi
+    
+    // Add library project jars
+    classpath += files(
+        project(':util').tasks.named('jar'),
+        project(':expr').tasks.named('jar'),
+        project(':aribaweb').tasks.named('jar'),
+        project(':widgets').tasks.named('jar')
+    )
+    
+    doFirst {
+        file("doc/tutorial").mkdirs()
+    }
+    
+    mainClass = 'org.codehaus.groovy.tools.GroovyStarter'
+    args = [
+        '--main', 'groovy.ui.GroovyMain',
+        'bin/processdoc.groovy',
+        'tools/templates/doctemplate.awl',
+        'src/site/Documentation',
+        'doc/tutorial'
+    ]
+    jvmArgs = getJava17JvmArgs()
+}
+
+tasks.register('docs') {
+    group = 'documentation'
+    description = 'Generates all javadocs and tutorials'
+    dependsOn javadocs, processDoc
+}
+
+tasks.register('site', JavaExec) {
+    group = 'documentation'
+    description = 'Generates static site'
+    dependsOn jars, docResources
+    
+    classpath = files("lib/ext/groovy-all.jar")
+    classpath += fileTree(dir: "lib/ext", include: ["*.jar"])
+    classpath += files("src/site")
+    classpath += configurations.servletApi
+    
+    doFirst {
+        file("doc/site").mkdirs()
+    }
+    
+    // Add library project jars
+    classpath += files(
+        project(':util').tasks.named('jar'),
+        project(':expr').tasks.named('jar'),
+        project(':aribaweb').tasks.named('jar'),
+        project(':widgets').tasks.named('jar'),
+        project(':metaui').tasks.named('jar'),
+        project(':groovyloader').tasks.named('jar')
+    )
+    
+    mainClass = 'ariba.ui.aribaweb.util.AWStaticSiteGenerator'
+    args = ["doc/site", "src/site", ".", "http://aribaweb.org"]
+    jvmArgs = getJava17JvmArgs()
+}
+
+tasks.register('indexDoc', JavaExec) {
+    group = 'documentation'
+    description = 'Generates Lucene index for documentation'
+    dependsOn jars
+    
+    doFirst {
+        file("doc/index.lucene").mkdirs()
+    }
+    
+    classpath = files("lib/ext/groovy-all.jar")
+    classpath += fileTree(dir: "lib/ext", include: ["*.jar"])
+    classpath += fileTree(dir: "lib/ext-demo", include: ["*.jar"])
+    classpath += configurations.servletApi
+    
+    // Add library project jars
+    classpath += files(
+        project(':util').tasks.named('jar'),
+        project(':expr').tasks.named('jar'),
+        project(':aribaweb').tasks.named('jar'),
+        project(':widgets').tasks.named('jar'),
+        project(':metaui').tasks.named('jar'),
+        project(':groovyloader').tasks.named('jar')
+    )
+    
+    mainClass = 'org.codehaus.groovy.tools.GroovyStarter'
+    args = [
+        '--main', 'groovy.ui.GroovyMain',
+        'bin/indexsource.groovy',
+        'doc/index.lucene',
+        'doc/api/', '$ARIBAWEB_HOME/docs/api', 'doc',
+        'doc/tutorial/', '$ARIBAWEB_HOME/docs/tutorial', 'tutorial',
+        'src/aribaweb/', '$ARIBAWEB_HOME/src/aribaweb', 'source',
+        'src/widgets/', '$ARIBAWEB_HOME/src/widgets', 'source',
+        'src/metaui/', '$ARIBAWEB_HOME/src/metaui', 'source',
+        'examples/', '$ARIBAWEB_HOME/examples', 'examples'
+    ]
+    jvmArgs = getJava17JvmArgs()
+}
+
+// 6. Distribution Packaging
+tasks.register('srcJar', Zip) {
+    group = 'distribution'
+    description = 'Packages all source files into a jar'
+    archiveFileName = 'ariba.aw-all-src.jar'
+    destinationDirectory = file("build/lib")
+    
+    ["src/util", "src/expr", "src/aribaweb", "src/widgets", "src/metaui", "src/metaui-jpa", "src/awreload"].each { dir ->
+        from(dir) {
+            include '**/*.java', '**/*.awl', '**/*.groovy', '**/*.js', '**/*.css', '**/*.htm'
+            exclude 'build/**'
+        }
+    }
+}
+
+tasks.register('appcoreSrcJar', Zip) {
+    group = 'distribution'
+    description = 'Packages examples appcore source files into a jar'
+    archiveFileName = 'ariba.appcore-src.jar'
+    destinationDirectory = file("build/lib")
+    
+    from("examples/appcore") {
+        include '**/*.java', '**/*.awl', '**/*.groovy', '**/*.js', '**/*.css', '**/*.htm'
+        exclude 'build/**'
+    }
+}
+
+tasks.register('packageSrc', Zip) {
+    group = 'distribution'
+    description = 'Generates the source code distribution zip'
+    archiveFileName = "aribaweb-src-${project.version}.zip"
+    destinationDirectory = file("dist")
+    
+    into("aribaweb-${project.version}") {
+        from(projectDir) {
+            include 'tools/**'
+            include 'src/**'
+            include 'examples/**'
+            include 'lib/ext*/**'
+            include 'bin/**'
+            include '*'
+            exclude 'dist/**'
+            exclude 'webapps/**'
+            exclude 'work/**'
+            exclude 'classes/**'
+            exclude 'derived-src/**'
+            exclude 'site/**'
+            exclude 'build/**'
+            exclude '.git/**'
+            exclude '.gradle/**'
+        }
+    }
+}
+
+tasks.register('packageBinaryMin', Zip) {
+    group = 'distribution'
+    description = 'Generates thin binary distribution zip'
+    archiveFileName = "aribaweb-${project.version}.zip"
+    destinationDirectory = file("dist")
+    
+    into("aribaweb-${project.version}") {
+        from(projectDir) {
+            include '**'
+            exclude 'dist/**'
+            exclude 'conf/**'
+            exclude 'work/**'
+            exclude 'classes/**'
+            exclude 'build/**'
+            exclude 'derived-src/**'
+            exclude 'webapps/**'
+            exclude 'lib/app.*'
+            exclude 'bin/**'
+            exclude 'site/**'
+            exclude '.git/**'
+            exclude '.gradle/**'
+        }
+        // Include bin/ with executable file modes
+        from('bin') {
+            into 'bin'
+            fileMode = 0777
+        }
+    }
+}
+
+tasks.register('package') {
+    group = 'distribution'
+    description = 'Generates both source and binary distributions'
+    dependsOn packageBinaryMin, packageSrc
+}
+
+tasks.register('distAll') {
+    group = 'distribution'
+    dependsOn 'package'
+}
+
+// 7. Extend Clean Task
+clean {
+    delete "dist"
+    delete "build"
+    delete "doc/api"
+    delete "doc/tutorial"
+    delete "doc/site"
+    delete "doc/index.lucene"
+    delete "doc/xsd"
+    delete "conf", "logs", "temp", "work"
+}
+
