@@ -46,8 +46,10 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo.
-echo [4/4] Starting Tomcat
-call "%AW_HOME%\bin\aw.bat" ant -f build.xml tomcat-build-browse -Ddebug.off=true
+echo [4/4] Starting Tomcat (without rebuilding)
+rem Use "tomcat" target instead of "tomcat-build-browse" to avoid rebuilding webapps/Demo,
+rem which would overwrite the renamed resources from step 3.
+call "%AW_HOME%\bin\aw.bat" ant -f build.xml tomcat -Ddebug.off=true
 
 if %ERRORLEVEL% neq 0 (
     echo Tomcat start failed!
