@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.aribaweb</groupId>
+        <artifactId>aribaweb-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>aribaweb-widgets</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-expr</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aribaweb</groupId>
+            <artifactId>aribaweb-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>log4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>markdownj</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>core-renderer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>iText</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ext-lib</groupId>
+            <artifactId>tidy</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>${project.basedir}</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>2.1.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>ext-lib</groupId>
+                        <artifactId>yuicompressor</artifactId>
+                        <version>1.0</version>
+                        <scope>system</scope>
+                        <systemPath>${maven.multiModuleProjectDirectory}/lib/ext-build/yuicompressor-2.3.5.jar</systemPath>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy</artifactId>
+                        <version>3.0.15</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <scripts>
+                                <script><![CDATA[
+                                    import java.nio.file.*
+                                    import java.nio.file.attribute.BasicFileAttributes
+
+                                    def srcDir = project.basedir
+                                    def outputDir = new File(project.build.outputDirectory)
+                                    def docrootTarget = new File(outputDir, "docroot")
+                                    docrootTarget.mkdirs()
+
+                                    // Helper function to copy files recursively with filters
+                                    def copyDirWithFilters = { File source, File target, Closure filter ->
+                                        if (!source.exists()) return
+                                        source.eachFileRecurse { File file ->
+                                            def relative = source.toPath().relativize(file.toPath()).toString()
+                                            if (filter(file, relative)) {
+                                                def destFile = new File(target, relative)
+                                                if (file.isDirectory()) {
+                                                    destFile.mkdirs()
+                                                } else {
+                                                    destFile.parentFile.mkdirs()
+                                                    Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // 1. Copy global resources: resource/global/** -> classes/ariba/resource/global/**
+                                    def globalSrc = new File(srcDir, "resource/global")
+                                    def globalDest = new File(outputDir, "ariba/resource/global")
+                                    if (globalSrc.exists()) {
+                                        log.info("Copying global resources from widgets...")
+                                        copyDirWithFilters(globalSrc, globalDest, { f, rel -> true })
+                                    }
+
+                                    // 2. Copy gifs: ariba/**/*.gif (excluding ariba/ui/richtext/xinha/) -> docroot/ariba/**/*.gif
+                                    def aribaSrc = new File(srcDir, "ariba")
+                                    def aribaDest = new File(docrootTarget, "ariba")
+                                    if (aribaSrc.exists()) {
+                                        log.info("Copying gifs from widgets...")
+                                        copyDirWithFilters(aribaSrc, aribaDest, { File file, String rel ->
+                                            if (file.isDirectory()) return true
+                                            if (!file.name.endsWith(".gif")) return false
+                                            // exclude ariba/ui/richtext/xinha/
+                                            def normalizedRel = rel.replace('\\', '/')
+                                            return !normalizedRel.contains("ui/richtext/xinha/")
+                                        })
+                                    }
+
+                                    // 3. Cherry-pick Xinha:
+                                    log.info("Cherry-picking Xinha editor resources...")
+                                    copyDirWithFilters(aribaSrc, aribaDest, { File file, String rel ->
+                                        def normalizedRel = rel.replace('\\', '/')
+                                        if (!normalizedRel.contains("ui/richtext/xinha/")) return false
+                                        if (file.isDirectory()) return true
+
+                                        // Cherry-pick criteria
+                                        if (normalizedRel.matches(".*/ui/richtext/xinha/[^/]+\\.js") ||
+                                            normalizedRel.matches(".*/ui/richtext/xinha/[^/]+\\.css") ||
+                                            normalizedRel.contains("ui/richtext/xinha/modules/") ||
+                                            normalizedRel.contains("ui/richtext/xinha/lang/") ||
+                                            normalizedRel.contains("ui/richtext/xinha/skins/ariba/") ||
+                                            normalizedRel.contains("ui/richtext/xinha/images/") ||
+                                            normalizedRel.endsWith("ui/richtext/xinha/popups/blank.html")) {
+                                            return true
+                                        }
+                                        return false
+                                    })
+
+                                    // 4. Copy resource/webserver -> docroot/ariba/ui
+                                    def webserverSrc = new File(srcDir, "resource/webserver")
+                                    def uiDest = new File(docrootTarget, "ariba/ui")
+                                    if (webserverSrc.exists()) {
+                                        log.info("Copying resource/webserver to docroot/ariba/ui...")
+                                        copyDirWithFilters(webserverSrc, uiDest, { File file, String rel ->
+                                            def normalizedRel = rel.replace('\\', '/')
+                                            return !normalizedRel.startsWith("branding") && !normalizedRel.startsWith("widg")
+                                        })
+                                    }
+
+                                    // 5. Copy resource/webserver/branding/ariba -> docroot/ariba/branding
+                                    def brandingSrc = new File(srcDir, "resource/webserver/branding/ariba")
+                                    def brandingDest = new File(docrootTarget, "ariba/branding")
+                                    if (brandingSrc.exists()) {
+                                        log.info("Copying resource/webserver/branding/ariba to docroot/ariba/branding...")
+                                        copyDirWithFilters(brandingSrc, brandingDest, { f, rel -> true })
+                                    }
+
+                                    // 6. Merge widgets JS files into docroot/ariba/ui/widg/widgets_all.js
+                                    def widgSrc = new File(srcDir, "resource/webserver/widg")
+                                    def widgDest = new File(docrootTarget, "ariba/ui/widg")
+                                    widgDest.mkdirs()
+
+                                    def filesToMerge = ["DragDrop.js", "Widgets.js", "Menu.js", "Chooser.js", "Datatable.js", "Calendar.js"]
+                                    def mergedContent = new StringBuilder()
+                                    filesToMerge.each { fileName ->
+                                        def file = new File(widgSrc, fileName)
+                                        if (file.exists()) {
+                                            mergedContent.append(file.text).append("\n")
+                                        }
+                                    }
+
+                                    def tempMergedFile = new File(project.build.directory, "widgets_all_uncompressed.js")
+                                    tempMergedFile.text = mergedContent.toString()
+
+                                    def compactFile = new File(widgDest, "widgets_all.js")
+                                    log.info("Compressing widgets JS to: " + compactFile.absolutePath)
+                                    try {
+                                        com.yahoo.platform.yui.compressor.YUICompressor.main([
+                                            "--type", "js",
+                                            "-o", compactFile.absolutePath,
+                                            tempMergedFile.absolutePath
+                                        ] as String[])
+                                    } catch (Exception e) {
+                                        log.error("Failed to compress JS using YUI Compressor, copying uncompressed version instead", e)
+                                        compactFile.text = tempMergedFile.text
+                                    }
+
+                                    // 7. Copy unmerged JS files: ModalWindow.js, prettify.js, richtext.js, flashchart.js
+                                    def unmergedFiles = ["ModalWindow.js", "prettify.js", "richtext.js", "flashchart.js"]
+                                    unmergedFiles.each { fileName ->
+                                        def file = new File(widgSrc, fileName)
+                                        if (file.exists()) {
+                                            Files.copy(file.toPath(), new File(widgDest, fileName).toPath(), StandardCopyOption.REPLACE_EXISTING)
+                                        }
+                                    }
+                                ]]></script>
+                            </scripts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
