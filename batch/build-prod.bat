@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 rem ============================================
-rem AribaWeb Production Build & Deploy Script
+rem AribaWeb Production Build  Deploy Script
 rem ============================================
 
 set "JAVA_HOME=C:\Program Files\Java\jdk1.8.0_392"
@@ -13,7 +13,7 @@ set "AW_HOME=%~dp0.."
 set "RENAME_SCRIPT=%~dp0\rename-assets.ps1"
 
 echo ============================================
-echo  AribaWeb Production Build & Deploy
+echo  AribaWeb Production Build  Deploy
 echo ============================================
 
 echo.

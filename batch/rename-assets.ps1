@@ -33,6 +33,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
 $AW_HOME = (Get-Item $ScriptDir).Parent.FullName
 Write-Host "[INFO] AW_HOME: $AW_HOME" -ForegroundColor Green
 
@@ -41,6 +42,19 @@ $DeployDocroot = Join-Path $AW_HOME "webapps\Demo\docroot"
 $SrcAribaweb = Join-Path $AW_HOME "src\aribaweb"
 $BuildLib = Join-Path $SrcAribaweb "build\lib"
 $DeployLib = Join-Path $AW_HOME "webapps\Demo\WEB-INF\lib"
+
+# Pre-flight checks
+if (-not (Test-Path $DeployDocroot)) {
+    Write-Host "[ERROR] Deploy docroot not found: $DeployDocroot" -ForegroundColor Red
+    Write-Host "[ERROR] Please run the build (ant webapps) before executing this script." -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-Path $DeployLib)) {
+    Write-Host "[ERROR] Deploy lib not found: $DeployLib" -ForegroundColor Red
+    Write-Host "[ERROR] Please run the build (ant webapps) before executing this script." -ForegroundColor Red
+    exit 1
+}
 
 function Write-LogInfo {
     param([string]$Message)
@@ -66,10 +80,10 @@ $env:ANT_HOME = "C:\apache-ant-1.10.17"
 Set-Location $SrcAribaweb
 $compileCmd = "$env:ANT_HOME\bin\ant.bat jar"
 Write-Host "Running: $compileCmd" -ForegroundColor Gray
-& cmd.exe /c $compileCmd 2>&1 | Out-Null
+& cmd.exe /c $compileCmd
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Compilation failed!" -ForegroundColor Red
+    Write-Host "[ERROR] Compilation failed! (exit code: $LASTEXITCODE)" -ForegroundColor Red
     exit 1
 }
 Write-LogInfo "Compilation successful!"
