@@ -481,7 +481,7 @@
                                     <scripts>
                                         <script><![CDATA[
                                             import java.nio.file.*
-                                            def baseDir = new File(project.basedir)
+                                            def baseDir = project.basedir
                                             def tomcatConf = new File(baseDir, "conf")
                                             if (!tomcatConf.exists()) {
                                                 log.info("Initializing Tomcat base configuration...")

@@ -130,6 +130,12 @@ if "%TARGET%"=="package-src" (
     goto end
 )
 
+if "%TARGET%"=="ensure-tomcat-conf" (
+    echo [INFO] Ensuring Tomcat base configuration is initialized...
+    call "%MAVEN_HOME%\bin\mvn.cmd" -f "%AW_HOME%\pom.xml" validate -Ptomcat
+    goto end
+)
+
 if "%TARGET%"=="tomcat" (
     echo [INFO] Starting Tomcat server natively...
     call "%MAVEN_HOME%\bin\mvn.cmd" -f "%AW_HOME%\pom.xml" -N exec:exec -Ptomcat
@@ -197,6 +203,7 @@ echo   common.clean       - Clean all generated build output (mvn clean)
 echo   compile            - Compile all source files (mvn compile)
 echo   copy-resources     - Copy and merge resources (mvn process-resources)
 echo   docs               - Generate aggregated javadocs and site documents
+echo   ensure-tomcat-conf - Ensure Tomcat base configuration is initialized
 echo   jar / jars         - Compile and build jar files for core modules
 echo   javadoc / javadocs - Generate aggregated Javadocs (mvn javadoc:aggregate)
 echo   launch             - Rebuild webapps, boot Tomcat, and open browser window
