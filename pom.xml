@@ -506,6 +506,7 @@
                                     <commandlineArgs>
                                         -Xmx256m
                                         ${tomcat.add-opens}
+                                        -Dariba.aribaweb.Debug=true
                                         -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
                                         -Djava.util.logging.config.file=${project.basedir}/conf/logging.properties
                                         -Dcatalina.home=${project.basedir}/tools/tomcat
