@@ -405,6 +405,17 @@
                 </excludes>
             </resource>
         </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.12.0</version>
+                <configuration>
+                    <excludePackageNames>adaptor-jdk15*</excludePackageNames>
+                    <doclint>none</doclint>
+                </configuration>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -518,6 +529,8 @@
                                     <environmentVariables>
                                         <CATALINA_HOME>${project.basedir}/tools/tomcat</CATALINA_HOME>
                                         <CATALINA_BASE>${project.basedir}</CATALINA_BASE>
+                                        <ARIBAWEB_HOME>${project.basedir}</ARIBAWEB_HOME>
+                                        <AW_HOME>${project.basedir}</AW_HOME>
                                     </environmentVariables>
                                 </configuration>
                             </execution>
