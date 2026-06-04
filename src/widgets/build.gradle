@@ -42,9 +42,9 @@ task mergeJs(type: JavaExec) {
 processResources {
     dependsOn mergeJs
 
-    // copy-resources target: Copy resource/global to ariba/
+    // copy-resources target: Copy resource/global to ariba/resource/global
     from('resource/global') {
-        into 'ariba'
+        into 'ariba/resource/global'
     }
 
     // copy-docroot-resources target:
