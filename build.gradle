@@ -250,15 +250,19 @@ task 'ensure-tomcat-conf' {
                     conf = conf.replace("Port=\"8", "Port=\"" + pre)
                     serverXml.text = conf
                 }
-                
-                def catalinaProperties = file("${confDir}/catalina.properties")
-                if (catalinaProperties.exists()) {
-                    def props = catalinaProperties.text
-                    props = props.replaceAll(/(?ms)^common\.loader=.*?(?=^server\.loader=)/) {
-                        'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"\n\n'
-                    }
-                    catalinaProperties.text = props
+            }
+        }
+
+        // Always restrict common.loader in catalina.properties to exclude catalina.base libs
+        def catalinaProperties = file("${confDir}/catalina.properties")
+        if (catalinaProperties.exists()) {
+            def props = catalinaProperties.text
+            if (props.contains('common.loader="${catalina.base}/lib"')) {
+                println "Updating tomcat catalina.properties to restrict common.loader..."
+                props = props.replaceAll(/(?ms)^common\.loader=.*?(?=^server\.loader=)/) {
+                    'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"\n\n'
                 }
+                catalinaProperties.text = props
             }
         }
     }
