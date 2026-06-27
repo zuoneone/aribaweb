@@ -28,16 +28,16 @@
     <import file="${aw.home}/tools/build-module.xml"/>
 
     <!-- Docroot :
-        resource/webserver  ->  docroot/ariba/ui/aribaweb
+        resource/webserver  ->  docroot/abacus/ui/abacusweb
     -->
-    <property name="docroot.destpath" value="docroot/ariba/ui/aribaweb"/>
+    <property name="docroot.destpath" value="docroot/abacus/ui/abacusweb"/>
     <resources id="src.docroot.resources">
         <fileset dir="${src.dir}/resource/webserver"/>
     </resources>
         
     <!-- Generate merged JS file -->
-    <property name="js.merge.destpath" value="ariba/ui/aribaweb"/>
-    <property name="js.merge.destfile" value="aribaweb_all.js"/>
+    <property name="js.merge.destpath" value="abacus/ui/abacusweb"/>
+    <property name="js.merge.destfile" value="abacusweb_all.js"/>
     <!-- requires that //ariba/3rdParty/jquery.foundation/jquery/main/gnu make was run first -->
     <filelist id="merge.js.filelist" dir="${src.dir}/resource/webserver/"
               files="jquery.js Util.js Dom.js Event.js Input.js Request.js Refresh.js Handlers.js"/>

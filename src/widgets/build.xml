@@ -57,16 +57,16 @@
                 <include name="ariba/ui/richtext/xinha/popups/blank.html"/>
             </fileset>
         </copy>
-        <copy todir="${build.classes.dir}/docroot/ariba/ui">
+        <copy todir="${build.classes.dir}/docroot/abacus/ui">
             <fileset dir="${src.dir}/resource/webserver"/>
         </copy>
-        <copy todir="${build.classes.dir}/docroot/ariba/branding">
+        <copy todir="${build.classes.dir}/docroot/abacus/branding">
             <fileset dir="${src.dir}/resource/webserver/branding/ariba"/>
         </copy>
     </target>
 
     <!-- Generate merged JS file -->
-    <property name="js.merge.destpath" value="ariba/ui/widg"/>
+    <property name="js.merge.destpath" value="abacus/ui/widg"/>
     <property name="js.merge.destfile" value="widgets_all.js"/>
     <filelist id="merge.js.filelist" dir="${src.dir}/resource/webserver/widg/"
               files="DragDrop.js Widgets.js Menu.js Chooser.js Datatable.js Calendar.js"/>

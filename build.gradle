@@ -283,7 +283,7 @@ def configureTomcat(JavaExec execTask) {
         '-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',
         "-Djava.util.logging.config.file=${rootDir}/conf/logging.properties",
         '-Xmx256m',
-        '-Dariba.aribaweb.Debug=true',
+        '-Dariba.aribaweb.Debug=false',
         "-Dcatalina.home=${tomcatHome}",
         "-Dcatalina.base=${rootDir}",
         '--add-opens=java.base/java.lang=ALL-UNNAMED',
@@ -308,7 +308,7 @@ def configureTomcat(JavaExec execTask) {
     subprojects.each { sub ->
         searchPaths << sub.projectDir.absolutePath
     }
-    execTask.environment 'ARIBA_AW_SEARCH_PATH', searchPaths.join(';')
+    // execTask.environment 'ARIBA_AW_SEARCH_PATH', searchPaths.join(';')
 
     execTask.doFirst {
         println "Starting Tomcat on http://localhost:8080/ (or alternate port in server.xml)..."

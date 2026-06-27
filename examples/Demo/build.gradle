@@ -100,7 +100,7 @@ processResources {
     }
     from('resource/webserver') {
         exclude 'branding/**'
-        into 'docroot'
+        into 'docroot/abacus/ui'
     }
     from('resource/webserver/branding') {
         into 'docroot/config/branding'

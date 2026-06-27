@@ -49,10 +49,10 @@ import java.util.List;
 public final class Widgets
 {
     private static final String BrandingConfigResourcePath = "config/branding";
-    private static final String BrandingAribaResourcePath = "ariba/branding";
+    private static final String BrandingAribaResourcePath = "abacus/branding";
 
-    private static final String AWWebResourcePath = "ariba/ui/aribaweb";
-    private static final String WidgResourcePath = "ariba/ui";
+    private static final String AWWebResourcePath = "abacus/ui/abacusweb";
+    private static final String WidgResourcePath = "abacus/ui";
 
     private static WidgetsDelegate _delegate;
 
@@ -282,8 +282,8 @@ public final class Widgets
     {
         // register root package.  (Should be in aribaweb?)
         registerResourceDirectory(packageRootPath, resourceURL);
-        registerResourceDirectory("./ariba/resource",
-                        StringUtil.strcat(resourceURL, "ariba/resource"));
+        registerResourceDirectory("./abacus/resource",
+                        StringUtil.strcat(resourceURL, "abacus/resource"));
 
         registerResourceDirectory(StringUtil.strcat(resourceFilePath, AWWebResourcePath),
                                   StringUtil.strcat(resourceURL, AWWebResourcePath));

@@ -41,6 +41,7 @@ task mergeJs(type: JavaExec) {
 
 processResources {
     dependsOn mergeJs
+    inputs.file file("${buildDir}/generated/js/widgets_all.js")
 
     // copy-resources target: Copy resource/global to ariba/resource/global
     from('resource/global') {
@@ -67,9 +68,9 @@ processResources {
         into 'docroot'
     }
 
-    // Copy resource/webserver to docroot/ariba/ui
+    // Copy resource/webserver to docroot/abacus/ui
     from('resource/webserver') {
-        into 'docroot/ariba/ui'
+        into 'docroot/abacus/ui'
         exclude 'widg/DragDrop.js'
         exclude 'widg/Widgets.js'
         exclude 'widg/Menu.js'
@@ -78,14 +79,14 @@ processResources {
         exclude 'widg/Calendar.js'
     }
 
-    // Copy branding/ariba to docroot/ariba/branding
+    // Copy branding/ariba to docroot/abacus/branding
     from('resource/webserver/branding/ariba') {
-        into 'docroot/ariba/branding'
+        into 'docroot/abacus/branding'
     }
 
-    // Copy compacted widgets_all.js to docroot/ariba/ui/widg/
+    // Copy compacted widgets_all.js to docroot/abacus/ui/widg/
     from("${buildDir}/generated/js") {
-        into 'docroot/ariba/ui/widg'
+        into 'docroot/abacus/ui/widg'
         include 'widgets_all.js'
     }
 

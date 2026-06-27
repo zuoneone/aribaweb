@@ -57,7 +57,7 @@
         <copy todir="${build.classes.dir}/docroot" failonerror="false">
             <fileset dir="${src.dir}" includes="**/*.gif,**/*.jpg,**/*.css,**/*.js" excludes="resource/,build/"/>
         </copy>
-        <copy todir="${build.classes.dir}/docroot" failonerror="false">
+        <copy todir="${build.classes.dir}/docroot/abacus/ui" failonerror="false">
             <fileset dir="${src.dir}/resource/webserver" excludes="branding/"/>
         </copy>
         <copy todir="${build.classes.dir}/docroot/config/branding" failonerror="false">

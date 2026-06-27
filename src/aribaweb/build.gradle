@@ -19,7 +19,7 @@ task mergeJs(type: JavaExec) {
         'resource/webserver/Handlers.js'
     )
     inputs.files jsFiles
-    outputs.file file("${buildDir}/generated/js/aribaweb_all.js")
+    outputs.file file("${buildDir}/generated/js/abacusweb_all.js")
 
     classpath = files("${rootDir}/lib/ext-build/yuicompressor-2.3.5.jar")
     mainClass = 'com.yahoo.platform.yui.compressor.YUICompressor'
@@ -40,16 +40,17 @@ task mergeJs(type: JavaExec) {
     args = [
         '--line-break', '0',
         file("${buildDir}/generated/js/merged.js").absolutePath,
-        '-o', file("${buildDir}/generated/js/aribaweb_all.js").absolutePath
+        '-o', file("${buildDir}/generated/js/abacusweb_all.js").absolutePath
     ]
 }
 
 processResources {
     dependsOn mergeJs
+    inputs.file file("${buildDir}/generated/js/abacusweb_all.js")
 
     // Copy normal docroot files excluding the source JS files that were merged
     from('resource/webserver') {
-        into 'docroot/ariba/ui/aribaweb'
+        into 'docroot/abacus/ui/abacusweb'
         exclude 'jquery.js'
         exclude 'Util.js'
         exclude 'Dom.js'
@@ -60,10 +61,10 @@ processResources {
         exclude 'Handlers.js'
     }
 
-    // Copy the merged aribaweb_all.js to docroot
+    // Copy the merged abacusweb_all.js to docroot
     from("${buildDir}/generated/js") {
-        into 'docroot/ariba/ui/aribaweb'
-        include 'aribaweb_all.js'
+        into 'docroot/abacus/ui/abacusweb'
+        include 'abacusweb_all.js'
     }
 
     from('resource/ariba') {
