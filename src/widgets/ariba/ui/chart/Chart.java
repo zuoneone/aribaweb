@@ -46,16 +46,20 @@ public class Chart extends AWComponent
         super.sleep();
     }
 
-    public String swfUrl ()
+    public String chartType ()
     {
         String filename = stringValueForBinding(BindingNames.filename);
-        if (filename == null) {
-            String type = stringValueForBinding("type");
-            Assert.that(type != null, "Must specify filename or type for chart");
-            filename = "fusioncharts/FCF_" + type + ".swf";
+        if (filename != null && !filename.isEmpty()) {
+            // Support legacy FCF_Foo.swf filenames by mapping to ECharts type
+            return filename.replaceAll("(?i)^.*FCF_", "")
+                           .replaceAll("(?i)\\.swf$", "")
+                           .toLowerCase();
         }
-        String url = session().resourceManager().urlForResourceNamed(filename);
-        Assert.that(url !=null, "Couldn't find resource for chart file: %s", filename);
-        return url;
+        String type = stringValueForBinding("type");
+        if (type != null && !type.isEmpty()) {
+            return type.toLowerCase();
+        }
+        // Fallback to avoid crash during partial AJAX renders
+        return "line";
     }
 }
