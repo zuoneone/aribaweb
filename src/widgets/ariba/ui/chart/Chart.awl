@@ -58,6 +58,7 @@
     </Binding>
 </a:Api>\
 <a:ClientSideScript filename="echarts/echarts.min.js"/>\
+<a:ClientSideScript filename="echarts/echarts-gl.min.js"/>\
 <a:ClientSideScript filename="widg/flashchart.js"/>\
 
 <a:SetValue objId="$requestContext.nextElementId"/>\
