@@ -158,9 +158,68 @@ function createSeries(name, data, type, isArea, isStacked, color)
     if (isStacked) {
         series.stack = "total";
     }
-    if (color) {
+
+    var seriesColor = color || nextChartColor();
+    var is3DColumn = type.indexOf("column3d") !== -1;
+
+    if (is3DColumn) {
+        series.itemStyle = {
+            color: {
+                type: "linear",
+                x: 0, y: 0, x2: 1, y2: 0,
+                colorStops: [
+                    { offset: 0, color: lightenColor(seriesColor, 0.3) },
+                    { offset: 0.5, color: seriesColor },
+                    { offset: 1, color: darkenColor(seriesColor, 0.2) }
+                ]
+            },
+            borderRadius: [4, 4, 0, 0],
+            shadowColor: "rgba(0,0,0,0.3)",
+            shadowBlur: 6,
+            shadowOffsetX: 3,
+            shadowOffsetY: 3
+        };
+    } else if (color) {
         series.itemStyle = { color: color };
     }
 
     return series;
+}
+
+var _chartColorIndex = 0;
+var _chartColors = ["#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", "#3ba272", "#fc8452", "#9a60b4"];
+
+function nextChartColor()
+{
+    var color = _chartColors[_chartColorIndex % _chartColors.length];
+    _chartColorIndex++;
+    return color;
+}
+
+function lightenColor(hex, percent)
+{
+    var rgb = hexToRgb(hex);
+    if (!rgb) return hex;
+    return "rgb(" + Math.min(255, Math.round(rgb.r + (255 - rgb.r) * percent)) + "," +
+        Math.min(255, Math.round(rgb.g + (255 - rgb.g) * percent)) + "," +
+        Math.min(255, Math.round(rgb.b + (255 - rgb.b) * percent)) + ")";
+}
+
+function darkenColor(hex, percent)
+{
+    var rgb = hexToRgb(hex);
+    if (!rgb) return hex;
+    return "rgb(" + Math.max(0, Math.round(rgb.r * (1 - percent))) + "," +
+        Math.max(0, Math.round(rgb.g * (1 - percent))) + "," +
+        Math.max(0, Math.round(rgb.b * (1 - percent))) + ")";
+}
+
+function hexToRgb(hex)
+{
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
 }
