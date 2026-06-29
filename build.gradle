@@ -5,6 +5,10 @@ import org.gradle.api.provider.Property
 import org.gradle.api.file.RegularFileProperty
 import java.util.Properties
 
+// Path to the Tomcat installation used for builds and running the demo app.
+// Override with -Paw.tomcatHome=/path/to/tomcat on the command line, or via gradle.properties.
+ext.awTomcatHome = project.findProperty('aw.tomcatHome') ?: 'C:/apache-tomcat-9.0.118'
+
 // Custom task to run AWEvaluateTemplateFile natively using the built project's classpath
 abstract class EvaluateTemplateTask extends JavaExec {
     @Input
@@ -102,9 +106,9 @@ subprojects {
         if (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists()) {
             println "Project ${project.name}: Using tools servlet-api"
             implementation files("${rootDir}/tools/tomcat/lib/servlet-api.jar")
-        } else if (new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists()) {
+        } else if (new File("${rootProject.ext.awTomcatHome}/lib/servlet-api.jar").exists()) {
             println "Project ${project.name}: Using Tomcat 9.0 servlet-api"
-            implementation files("C:/apache-tomcat-9.0.115/lib/servlet-api.jar")
+            implementation files("${rootProject.ext.awTomcatHome}/lib/servlet-api.jar")
         } else {
             println "Project ${project.name}: Using fallback javax.servlet.zip"
             implementation files("${rootDir}/lib/ext-build/javax.servlet.zip")
@@ -167,7 +171,7 @@ def writeChecksum(File zipFile) {
 }
 
 def getGroovyScriptClasspath() {
-    def servletJar = new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists() ? "C:/apache-tomcat-9.0.115/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
+    def servletJar = new File("${rootProject.ext.awTomcatHome}/lib/servlet-api.jar").exists() ? "${rootProject.ext.awTomcatHome}/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
 
     return files(
         "${rootDir}/lib/ext/groovy-all.jar",
@@ -192,7 +196,7 @@ def getGroovyAppClasspath() {
 }
 
 def getBuildClasspath() {
-    def servletJar = new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists() ? "C:/apache-tomcat-9.0.115/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
+    def servletJar = new File("${rootProject.ext.awTomcatHome}/lib/servlet-api.jar").exists() ? "${rootProject.ext.awTomcatHome}/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
     def extBuildTree = fileTree(dir: "${rootDir}/lib/ext-build", include: "*.jar")
     extBuildTree.exclude 'javax.servlet.zip'
 
@@ -221,8 +225,8 @@ def getBuildClasspath() {
 def getTomcatHome() {
     if (new File("${rootDir}/tools/tomcat").exists()) {
         return "${rootDir}/tools/tomcat"
-    } else if (new File("C:/apache-tomcat-9.0.115").exists()) {
-        return "C:/apache-tomcat-9.0.115"
+    } else if (new File(rootProject.ext.awTomcatHome).exists()) {
+        return rootProject.ext.awTomcatHome
     }
     return ""
 }
@@ -283,7 +287,7 @@ def configureTomcat(JavaExec execTask) {
         '-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',
         "-Djava.util.logging.config.file=${rootDir}/conf/logging.properties",
         '-Xmx256m',
-        '-Dariba.aribaweb.Debug=true',
+        '-Dariba.aribaweb.Debug=false',
         "-Dcatalina.home=${tomcatHome}",
         "-Dcatalina.base=${rootDir}",
         '--add-opens=java.base/java.lang=ALL-UNNAMED',
@@ -308,7 +312,7 @@ def configureTomcat(JavaExec execTask) {
     subprojects.each { sub ->
         searchPaths << sub.projectDir.absolutePath
     }
-    execTask.environment 'ARIBA_AW_SEARCH_PATH', searchPaths.join(';')
+    // execTask.environment 'ARIBA_AW_SEARCH_PATH', searchPaths.join(';')
 
     execTask.doFirst {
         println "Starting Tomcat on http://localhost:8080/ (or alternate port in server.xml)..."
