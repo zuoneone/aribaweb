@@ -44,6 +44,7 @@
         <copy todir="${build.classes.dir}/docroot">
             <fileset dir="${src.dir}" includes="ariba/**/*.gif" 
 	                                  excludes="ariba/ui/richtext/xinha/"/>
+            <mapper type="regexp" from="^ariba/(.*)$" to="abacus/\1"/>
         </copy>
         <copy todir="${build.classes.dir}/docroot">
 			<!--- The full Xinha distribution is HUGE (> 9000 files) so we cherry pick -->
@@ -56,6 +57,7 @@
                 <include name="ariba/ui/richtext/xinha/images/"/>
                 <include name="ariba/ui/richtext/xinha/popups/blank.html"/>
             </fileset>
+            <mapper type="regexp" from="^ariba/(.*)$" to="abacus/\1"/>
         </copy>
         <copy todir="${build.classes.dir}/docroot/abacus/ui">
             <fileset dir="${src.dir}/resource/webserver"/>

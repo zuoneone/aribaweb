@@ -32,8 +32,8 @@ public final class Initialization
             AWConcreteServerApplication application = (AWConcreteServerApplication)AWConcreteServerApplication.sharedInstance();
             String resourceUrl = application.resourceUrl();
             if (resourceUrl != null) {
-                application.resourceManager().registerResourceDirectory("./ariba/ui/validation",
-                                                        resourceUrl + "ariba/ui/validation/",
+                application.resourceManager().registerResourceDirectory("./abacus/ui/validation",
+                                                        resourceUrl + "abacus/ui/validation/",
                                                         false);
                 application.resourceManager().registerPackageName("ariba.ui.validation", true);
             }

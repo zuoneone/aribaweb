@@ -36,8 +36,8 @@ public final class Initialization
             AWConcreteServerApplication application = (AWConcreteServerApplication)AWConcreteServerApplication.sharedInstance();
             String resourceUrl = application.resourceUrl();
 
-            application.resourceManager().registerResourceDirectory("./ariba/ui/table",
-                    resourceUrl+"ariba/ui/table/",
+            application.resourceManager().registerResourceDirectory("./abacus/ui/table",
+                    resourceUrl+"abacus/ui/table/",
                     false);
             application.resourceManager().registerPackageName("ariba.ui.table", true);
 

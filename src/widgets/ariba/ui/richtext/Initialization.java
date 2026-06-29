@@ -32,7 +32,7 @@ public class Initialization
             AWConcreteServerApplication application = (AWConcreteServerApplication)AWConcreteServerApplication.sharedInstance();
             String resourceUrl = (String)FieldValue.getFieldValue(application, "resourceUrl");
 
-            application.resourceManager().registerResourceDirectory("./ariba/ui/richtext", resourceUrl+"ariba/ui/richtext/");
+            application.resourceManager().registerResourceDirectory("./abacus/ui/richtext", resourceUrl+"abacus/ui/richtext/");
             application.resourceManager().registerPackageName("ariba.ui.richtext", true);
         }
     }

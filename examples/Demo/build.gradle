@@ -103,7 +103,7 @@ processResources {
         into 'docroot/abacus/ui'
     }
     from('resource/webserver/branding') {
-        into 'docroot/config/branding'
+        into 'docroot/abacus/branding'
     }
 }
 

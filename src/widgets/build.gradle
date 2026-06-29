@@ -43,20 +43,27 @@ processResources {
     dependsOn mergeJs
     inputs.file file("${buildDir}/generated/js/widgets_all.js")
 
-    // copy-resources target: Copy resource/global to ariba/resource/global
+    // copy-resources target: Copy resource/global to ariba/resource/global (mapped to abacus/resource/global)
     from('resource/global') {
-        into 'ariba/resource/global'
+        into 'abacus/resource/global'
     }
 
     // copy-docroot-resources target:
-    // Copy ariba/**/*.gif (excluding richtext/xinha) to docroot
+    // Copy ariba/**/*.gif (excluding richtext/xinha) to docroot, mapping ariba->abacus
     from('.') {
         include 'ariba/**/*.gif'
         exclude 'ariba/ui/richtext/xinha/**'
         into 'docroot'
+        includeEmptyDirs = false
+        eachFile { fileCopyDetails ->
+            String path = fileCopyDetails.path
+            if (path.startsWith('docroot/ariba/')) {
+                fileCopyDetails.path = path.replace('docroot/ariba/', 'docroot/abacus/')
+            }
+        }
     }
 
-    // Cherry pick Xinha distribution to docroot
+    // Cherry pick Xinha distribution to docroot, mapping ariba->abacus
     from('.') {
         include 'ariba/ui/richtext/xinha/*.js'
         include 'ariba/ui/richtext/xinha/*.css'
@@ -66,11 +73,19 @@ processResources {
         include 'ariba/ui/richtext/xinha/images/**'
         include 'ariba/ui/richtext/xinha/popups/blank.html'
         into 'docroot'
+        includeEmptyDirs = false
+        eachFile { fileCopyDetails ->
+            String path = fileCopyDetails.path
+            if (path.startsWith('docroot/ariba/')) {
+                fileCopyDetails.path = path.replace('docroot/ariba/', 'docroot/abacus/')
+            }
+        }
     }
 
     // Copy resource/webserver to docroot/abacus/ui
     from('resource/webserver') {
         into 'docroot/abacus/ui'
+        exclude 'branding/**'
         exclude 'widg/DragDrop.js'
         exclude 'widg/Widgets.js'
         exclude 'widg/Menu.js'

@@ -31,8 +31,8 @@ public final class Initialization
             AWConcreteServerApplication application = (AWConcreteServerApplication)AWConcreteServerApplication.sharedInstance();
             String resourceUrl = application.resourceUrl();
 
-            application.resourceManager().registerResourceDirectory("./ariba/ui/outline",
-                                                        resourceUrl+"ariba/ui/outline/",
+            application.resourceManager().registerResourceDirectory("./abacus/ui/outline",
+                                                        resourceUrl+"abacus/ui/outline/",
                                                         false);
             application.resourceManager().registerPackageName("ariba.ui.outline", true);
         }
