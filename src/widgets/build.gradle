@@ -1,0 +1,95 @@
+dependencies {
+    implementation project(':util')
+    implementation project(':expr')
+    implementation project(':aribaweb-core')
+}
+
+task mergeJs(type: JavaExec) {
+    def jsFiles = files(
+        'resource/webserver/widg/DragDrop.js',
+        'resource/webserver/widg/Widgets.js',
+        'resource/webserver/widg/Menu.js',
+        'resource/webserver/widg/Chooser.js',
+        'resource/webserver/widg/Datatable.js',
+        'resource/webserver/widg/Calendar.js'
+    )
+    inputs.files jsFiles
+    outputs.file file("${buildDir}/generated/js/widgets_all.js")
+
+    classpath = files("${rootDir}/lib/ext-build/yuicompressor-2.3.5.jar")
+    mainClass = 'com.yahoo.platform.yui.compressor.YUICompressor'
+
+    doFirst {
+        file("${buildDir}/generated/js").mkdirs()
+        def merged = file("${buildDir}/generated/js/merged.js")
+        merged.withOutputStream { os ->
+            jsFiles.each { f ->
+                f.withInputStream { is ->
+                    os << is
+                }
+                os.write('\n'.getBytes('UTF-8'))
+            }
+        }
+    }
+
+    args = [
+        '--line-break', '0',
+        file("${buildDir}/generated/js/merged.js").absolutePath,
+        '-o', file("${buildDir}/generated/js/widgets_all.js").absolutePath
+    ]
+}
+
+processResources {
+    dependsOn mergeJs
+
+    // copy-resources target: Copy resource/global to ariba/resource/global
+    from('resource/global') {
+        into 'ariba/resource/global'
+    }
+
+    // copy-docroot-resources target:
+    // Copy ariba/**/*.gif (excluding richtext/xinha) to docroot
+    from('.') {
+        include 'ariba/**/*.gif'
+        exclude 'ariba/ui/richtext/xinha/**'
+        into 'docroot'
+    }
+
+    // Cherry pick Xinha distribution to docroot
+    from('.') {
+        include 'ariba/ui/richtext/xinha/*.js'
+        include 'ariba/ui/richtext/xinha/*.css'
+        include 'ariba/ui/richtext/xinha/modules/**'
+        include 'ariba/ui/richtext/xinha/lang/**'
+        include 'ariba/ui/richtext/xinha/skins/ariba/**'
+        include 'ariba/ui/richtext/xinha/images/**'
+        include 'ariba/ui/richtext/xinha/popups/blank.html'
+        into 'docroot'
+    }
+
+    // Copy resource/webserver to docroot/ariba/ui
+    from('resource/webserver') {
+        into 'docroot/ariba/ui'
+        exclude 'widg/DragDrop.js'
+        exclude 'widg/Widgets.js'
+        exclude 'widg/Menu.js'
+        exclude 'widg/Chooser.js'
+        exclude 'widg/Datatable.js'
+        exclude 'widg/Calendar.js'
+    }
+
+    // Copy branding/ariba to docroot/ariba/branding
+    from('resource/webserver/branding/ariba') {
+        into 'docroot/ariba/branding'
+    }
+
+    // Copy compacted widgets_all.js to docroot/ariba/ui/widg/
+    from("${buildDir}/generated/js") {
+        into 'docroot/ariba/ui/widg'
+        include 'widgets_all.js'
+    }
+
+    from('resource/ariba') {
+        include 'resource/**/*'
+    }
+}

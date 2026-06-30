@@ -1,0 +1,28 @@
+dependencies {
+    implementation project(':util')
+    implementation project(':expr')
+    implementation project(':aribaweb-core')
+    implementation project(':widgets')
+}
+
+task generateJavacc(type: JavaExec) {
+    inputs.file file("ariba/ui/meta/core/Parser.jj")
+    outputs.dir file("${buildDir}/generated/javacc/ariba/ui/meta/core")
+
+    classpath = files("${rootDir}/lib/ext-build/javacc.jar")
+    mainClass = 'org.javacc.parser.Main'
+    args = [
+        "-OUTPUT_DIRECTORY=${buildDir}/generated/javacc/ariba/ui/meta/core",
+        file("ariba/ui/meta/core/Parser.jj").absolutePath
+    ]
+}
+
+compileJava.dependsOn generateJavacc
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/javacc"]
+
+processResources {
+    from('.') {
+        include 'resource/**/*'
+    }
+}

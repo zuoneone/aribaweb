@@ -1,0 +1,96 @@
+apply plugin: 'groovy'
+apply plugin: 'war'
+
+dependencies {
+    implementation project(':util')
+    implementation project(':expr')
+    implementation project(':aribaweb-core')
+    implementation project(':widgets')
+    implementation project(':metaui')
+    implementation project(':groovyloader')
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['.']
+            include 'app/**/*.java'
+            include 'app/**/*.groovy'
+        }
+        java {
+            srcDirs = []
+        }
+        resources {
+            srcDirs = ['.']
+            include '**/*.awl'
+            include '**/*.htm'
+            include '**/*.oss'
+            include '**/*.awz'
+            include '**/*.afr'
+            include '**/*.csv'
+            include '**/*.xml'
+            include '**/*.properties'
+            exclude 'build/**'
+        }
+    }
+}
+
+task generateWebXml(type: rootProject.EvaluateTemplateTask) {
+    classpath = project(':aribaweb-core').sourceSets.main.runtimeClasspath
+    templateFile = file("${rootDir}/tools/templates/web.xml")
+    outputFile = file("${buildDir}/generated/resources/web.xml")
+    templateProperties = [
+        'servlet.name': 'site',
+        'servlet.displayName': 'AribaWeb Site',
+        'servlet.description': 'AribaWeb documentation and public site',
+        'servlet.class': 'ariba.ui.servletadaptor.AWDispatcherServlet',
+        'app.name': 'AribaWeb',
+        'servlet.init.onstartup': 'false'
+    ]
+}
+
+task generateAribawebProperties(type: rootProject.EvaluateTemplateTask) {
+    classpath = project(':aribaweb-core').sourceSets.main.runtimeClasspath
+    templateFile = file("${rootDir}/tools/templates/aribaweb.properties")
+    outputFile = file("${buildDir}/generated/resources/META-INF/aribaweb.properties")
+    templateProperties = [
+        'aw.useNamespaceFromPackage': 'ariba.ui.meta',
+        'aw.appName': 'site',
+        'aw.packagedResourceExtensions': 'awl,oss,csv,xml',
+        'aw.dependsOn': 'ariba.groovyloader,ariba.metaui',
+        'aw.namespaceIdentifier': 'x'
+    ]
+}
+
+processResources {
+    dependsOn generateAribawebProperties
+    from("${buildDir}/generated/resources") {
+        include 'META-INF/aribaweb.properties'
+    }
+    from("${rootDir}/tools/templates") {
+        include 'log4j.properties'
+        include 'c3p0.properties'
+    }
+    // Copy local docroot files (preserving relative path inside docroot)
+    from('.') {
+        include '**/*.gif'
+        include '**/*.jpg'
+        include '**/*.css'
+        include '**/*.js'
+        exclude 'resource/**'
+        exclude 'build/**'
+        into 'docroot'
+    }
+    from('resource/webserver') {
+        exclude 'branding/**'
+        into 'docroot'
+    }
+    from('resource/webserver/branding') {
+        into 'docroot/config/branding'
+    }
+}
+
+war {
+    dependsOn generateWebXml
+    webXml = file("${buildDir}/generated/resources/web.xml")
+}

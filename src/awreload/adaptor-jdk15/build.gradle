@@ -1,0 +1,13 @@
+dependencies {
+    implementation project(':awreload')
+}
+
+jar {
+    archiveFileName = 'ariba.awreload-jmti.jar'
+    manifest {
+        attributes(
+            'Premain-Class': 'ariba.awreload.jmti.Agent',
+            'Can-Redefine-Classes': 'true'
+        )
+    }
+}

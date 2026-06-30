@@ -1,0 +1,46 @@
+rootProject.name = 'aribaweb'
+
+include 'util'
+project(':util').projectDir = file('src/util')
+
+include 'expr'
+project(':expr').projectDir = file('src/expr')
+
+include 'aribaweb-core'
+project(':aribaweb-core').projectDir = file('src/aribaweb')
+
+include 'widgets'
+project(':widgets').projectDir = file('src/widgets')
+
+include 'metaui'
+project(':metaui').projectDir = file('src/metaui')
+
+include 'metaui-jpa'
+project(':metaui-jpa').projectDir = file('src/metaui-jpa')
+
+include 'groovyloader'
+project(':groovyloader').projectDir = file('src/groovyloader')
+
+include 'awreload'
+project(':awreload').projectDir = file('src/awreload')
+
+include 'awreload-adaptor-jdk15'
+project(':awreload-adaptor-jdk15').projectDir = file('src/awreload/adaptor-jdk15')
+
+include 'appcore'
+project(':appcore').projectDir = file('examples/appcore')
+
+include 'AtIssue'
+project(':AtIssue').projectDir = file('examples/AtIssue')
+
+include 'Demo'
+project(':Demo').projectDir = file('examples/Demo')
+
+include 'GuestBook'
+project(':GuestBook').projectDir = file('examples/GuestBook')
+
+include 'MasterDetail'
+project(':MasterDetail').projectDir = file('examples/MasterDetail')
+
+include 'site'
+project(':site').projectDir = file('src/site')

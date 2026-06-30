@@ -1,0 +1,34 @@
+dependencies {
+    implementation project(':util')
+    implementation project(':expr')
+    implementation project(':aribaweb-core')
+    implementation project(':widgets')
+    implementation project(':metaui')
+    implementation project(':metaui-jpa')
+
+    implementation fileTree(dir: "${rootDir}/lib/ext-jpa", include: ['*.jar', '*.zip'], exclude: ['javassist-*.jar'])
+    implementation 'org.javassist:javassist:3.29.2-GA'
+    implementation fileTree(dir: "${rootDir}/lib/ext-compass", include: ['*.jar', '*.zip'])
+}
+
+jar {
+    archiveFileName = 'ariba.appcore.jar'
+}
+
+task generateAribawebProperties(type: rootProject.EvaluateTemplateTask) {
+    classpath = project(':aribaweb-core').sourceSets.main.runtimeClasspath
+    templateFile = file("${rootDir}/tools/templates/aribaweb.properties")
+    outputFile = file("${buildDir}/generated/resources/META-INF/aribaweb.properties")
+    templateProperties = [
+        'aw.useNamespaceFromPackage': 'ariba.ui.meta',
+        'aw.appName': 'appcore'
+    ]
+}
+
+processResources {
+    dependsOn generateAribawebProperties
+    from("${buildDir}/generated/resources") {
+        include 'META-INF/aribaweb.properties'
+    }
+}
+

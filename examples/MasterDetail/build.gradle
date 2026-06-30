@@ -1,0 +1,132 @@
+apply plugin: 'groovy'
+apply plugin: 'war'
+
+dependencies {
+    implementation project(':util')
+    implementation project(':expr')
+    implementation project(':aribaweb-core')
+    implementation project(':widgets')
+    implementation project(':metaui')
+    implementation project(':metaui-jpa')
+    implementation project(':appcore')
+    implementation project(':groovyloader')
+
+    implementation fileTree(dir: "${rootDir}/lib/ext-jpa", include: ['*.jar', '*.zip'], exclude: ['javassist-*.jar'])
+    implementation 'org.javassist:javassist:3.29.2-GA'
+    implementation fileTree(dir: "${rootDir}/lib/ext-compass", include: ['*.jar', '*.zip'])
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['.']
+            include 'app/**/*.java'
+            include 'app/**/*.groovy'
+            include 'model/**/*.java'
+            include 'model/**/*.groovy'
+        }
+        java {
+            srcDirs = []
+        }
+        resources {
+            srcDirs = ['.']
+            include '**/*.awl'
+            include '**/*.htm'
+            include '**/*.oss'
+            include '**/*.awz'
+            include '**/*.afr'
+            include '**/*.csv'
+            include '**/*.xml'
+            include '**/*.properties'
+            exclude 'build/**'
+        }
+    }
+}
+
+task generateWebXml(type: rootProject.EvaluateTemplateTask) {
+    classpath = project(':aribaweb-core').sourceSets.main.runtimeClasspath
+    templateFile = file("${rootDir}/tools/templates/web.xml")
+    outputFile = file("${buildDir}/generated/resources/web.xml")
+    templateProperties = [
+        'servlet.name': 'MasterDetail',
+        'servlet.displayName': 'MasterDetail Application',
+        'servlet.description': 'MasterDetail example application',
+        'servlet.class': 'ariba.ui.servletadaptor.AWDispatcherServlet',
+        'app.name': 'AribaWeb',
+        'servlet.init.onstartup': 'false'
+    ]
+}
+
+task generatePersistenceXml(type: rootProject.EvaluateTemplateTask) {
+    classpath = project(':aribaweb-core').sourceSets.main.runtimeClasspath
+    templateFile = file("${rootDir}/tools/templates/persistence.xml")
+    outputFile = file("${buildDir}/generated/resources/META-INF/persistence.xml")
+    templateProperties = [
+        'persistence.show.sql': 'true',
+        'compass.engine.connection': 'ram://metaui-compass-index',
+        'hibernate.connection.driver_class': 'org.hsqldb.jdbcDriver',
+        'hibernate.connection.url': 'jdbc:hsqldb:mem:MasterDetail',
+        'hibernate.connection.username': 'sa',
+        'hibernate.connection.password': '',
+        'hibernate.dialect': 'org.hibernate.dialect.HSQLDialect',
+        'hibernate.hbm2ddl.auto': 'update'
+    ]
+
+}
+
+task generateAribawebProperties(type: rootProject.EvaluateTemplateTask) {
+    classpath = project(':aribaweb-core').sourceSets.main.runtimeClasspath
+    templateFile = file("${rootDir}/tools/templates/aribaweb.properties")
+    outputFile = file("${buildDir}/generated/resources/META-INF/aribaweb.properties")
+    templateProperties = [
+        'aw.useNamespaceFromPackage': 'ariba.ui.meta',
+        'aw.appName': 'MasterDetail',
+        'aw.packagedResourceExtensions': 'awl,oss,csv,xml',
+        'aw.preInitializer': 'ariba.appcore.Initialization.initialize',
+        'aw.allowAccessWithoutLogin': 'true',
+        'aw.dependsOn': 'ariba.groovyloader,ariba.metaui-jpa',
+        'aw.inlinedJars': 'ariba.appcore.jar',
+        'aw.namespaceIdentifier': 'x'
+    ]
+}
+
+processResources {
+    dependsOn generatePersistenceXml, generateAribawebProperties
+    from("${buildDir}/generated/resources") {
+        include 'META-INF/persistence.xml'
+        include 'META-INF/aribaweb.properties'
+    }
+    from("${rootDir}/tools/templates") {
+        include 'log4j.properties'
+        include 'c3p0.properties'
+    }
+    // Copy local docroot files (preserving relative path inside docroot)
+    from('.') {
+        include '**/*.gif'
+        include '**/*.jpg'
+        include '**/*.css'
+        include '**/*.js'
+        exclude 'resource/**'
+        exclude 'build/**'
+        into 'docroot'
+    }
+    from('resource/webserver') {
+        exclude 'branding/**'
+        into 'docroot'
+    }
+    from('resource/webserver/branding') {
+        into 'docroot/config/branding'
+    }
+}
+
+war {
+    dependsOn generateWebXml
+    webXml = file("${buildDir}/generated/resources/web.xml")
+    classpath = classpath.filter { File file ->
+        !file.name.equals("ariba.appcore.jar")
+    }
+}
+
+jar {
+    from project(':appcore').sourceSets.main.output
+}

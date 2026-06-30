@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Clean JAVA_HOME and GRADLE_HOME from trailing spaces and quotes
+CLEAN_JAVA_HOME=$(echo "$JAVA_HOME" | sed -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')
+CLEAN_GRADLE_HOME=$(echo "$GRADLE_HOME" | sed -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')
+
+if [ -z "$CLEAN_JAVA_HOME" ]; then
+    echo "Please set up JAVA_HOME environment variable first."
+    exit 1
+fi
+
+if [ -z "$CLEAN_GRADLE_HOME" ]; then
+    echo "Please set up GRADLE_HOME environment variable first."
+    exit 1
+fi
+
+export JAVA_HOME="$CLEAN_JAVA_HOME"
+export PATH="$CLEAN_JAVA_HOME/bin:$CLEAN_GRADLE_HOME/bin:$PATH"
+
+echo "Setting JAVA_HOME to: $JAVA_HOME"
+echo "Setting GRADLE_HOME to: $CLEAN_GRADLE_HOME"
+echo "Running Gradle..."
+
+exec "$CLEAN_GRADLE_HOME/bin/gradle" "$@"

@@ -1,0 +1,953 @@
+// Root build.gradle for AribaWeb
+
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.file.RegularFileProperty
+import java.util.Properties
+
+// Custom task to run AWEvaluateTemplateFile natively using the built project's classpath
+abstract class EvaluateTemplateTask extends JavaExec {
+    @Input
+    abstract MapProperty<String, String> getTemplateProperties()
+
+    @InputFile
+    abstract RegularFileProperty getTemplateFile()
+
+    @OutputFile
+    abstract RegularFileProperty getOutputFile()
+
+    EvaluateTemplateTask() {
+        mainClass.set('ariba.ui.aribaweb.util.AWEvaluateTemplateFile')
+    }
+
+    @TaskAction
+    void exec() {
+        File propsFile = File.createTempFile("gradle_eval", ".properties")
+        propsFile.deleteOnExit()
+        Properties props = new Properties()
+        templateProperties.get().each { k, v -> props.setProperty(k, v) }
+        propsFile.withOutputStream { props.store(it, null) }
+
+        args = [
+            templateFile.get().asFile.absolutePath,
+            propsFile.absolutePath,
+            outputFile.get().asFile.absolutePath
+        ]
+
+        super.exec()
+    }
+}
+
+subprojects {
+    repositories {
+        mavenCentral()
+    }
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
+    }
+
+    // Default configuration for Java projects. 
+    // Subprojects with Groovy (examples, site) will override this in their own build.gradle.
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['.']
+                include 'ariba/**/*.java'
+            }
+            resources {
+                srcDirs = ['.']
+                include 'ariba/**/*.awl'
+                include 'ariba/**/*.htm'
+                include 'ariba/**/*.oss'
+                include 'ariba/**/*.awz'
+                include 'ariba/**/*.afr'
+                include 'ariba/**/*.csv'
+                include 'ariba/**/*.xml'
+                include 'ariba/**/*.properties'
+                exclude 'build/**'
+                exclude 'ariba/resource/**'
+                exclude 'resource/**'
+            }
+        }
+    }
+
+    jar {
+        duplicatesStrategy = 'exclude'
+        destinationDirectory = file("${rootDir}/lib")
+        archiveFileName = "ariba.${project.name}.jar"
+        metaInf {
+            from("${rootDir}/LICENSE.txt")
+            from("${rootDir}/NOTICE.txt")
+            if (file("aribaweb.properties").exists()) {
+                from("aribaweb.properties")
+            }
+        }
+    }
+
+
+    dependencies {
+        implementation fileTree(dir: "${rootDir}/lib/ext", include: ['*.jar', '*.zip'])
+        def extBuildTree = fileTree(dir: "${rootDir}/lib/ext-build", include: ['*.jar', '*.zip'])
+        extBuildTree.exclude 'javax.servlet.zip'
+        implementation extBuildTree
+        if (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists()) {
+            println "Project ${project.name}: Using tools servlet-api"
+            implementation files("${rootDir}/tools/tomcat/lib/servlet-api.jar")
+        } else if (new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists()) {
+            println "Project ${project.name}: Using Tomcat 9.0 servlet-api"
+            implementation files("C:/apache-tomcat-9.0.115/lib/servlet-api.jar")
+        } else {
+            println "Project ${project.name}: Using fallback javax.servlet.zip"
+            implementation files("${rootDir}/lib/ext-build/javax.servlet.zip")
+        }
+    }
+
+    tasks.withType(GroovyCompile).configureEach {
+        groovyClasspath = files("${rootDir}/lib/ext/groovy-all.jar")
+    }
+
+    plugins.withId('war') {
+        tasks.named('jar') {
+            enabled = true
+        }
+
+        tasks.named('war') {
+            duplicatesStrategy = 'exclude'
+            classpath = classpath - project.sourceSets.main.output
+            from(tasks.named('jar')) {
+                into 'WEB-INF/lib'
+            }
+            rootProject.subprojects.each { sub ->
+                dependsOn sub.tasks.named('processResources')
+                from(sub.tasks.named('processResources')) {
+                    include 'docroot/**'
+                }
+            }
+        }
+
+        task explodeWar(type: Sync) {
+            dependsOn tasks.named('war')
+            from zipTree(tasks.named('war').flatMap { it.archiveFile })
+            into file("${rootDir}/webapps/${project.name}")
+        }
+    }
+}
+
+ext.EvaluateTemplateTask = EvaluateTemplateTask
+
+import java.security.MessageDigest
+
+// Helper methods for packaging and MD5 generation
+def calculateMD5(File file) {
+    def digest = MessageDigest.getInstance("MD5")
+    file.withInputStream { is ->
+        byte[] buffer = new byte[8192]
+        int read
+        while ((read = is.read(buffer)) > 0) {
+            digest.update(buffer, 0, read)
+        }
+    }
+    return new BigInteger(1, digest.digest()).toString(16).padLeft(32, '0')
+}
+
+def writeChecksum(File zipFile) {
+    def hash = calculateMD5(zipFile)
+    def checksumFile = file("${zipFile.absolutePath}.md5")
+    checksumFile.text = "${hash}  ${zipFile.name}\n"
+    println "Checksum generated: ${checksumFile.absolutePath}"
+}
+
+def getGroovyScriptClasspath() {
+    def servletJar = new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists() ? "C:/apache-tomcat-9.0.115/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
+
+    return files(
+        "${rootDir}/lib/ext/groovy-all.jar",
+        servletJar,
+        fileTree(dir: "${rootDir}/lib/ext", include: [
+            'log4j*.jar', 'jakarta-oro.jar', 'asm.jar', 'bcel.jar', 'markdownj.jar',
+            'core-renderer.jar', 'iText-2.0.8.jar', 'tidy.jar'
+        ]),
+        fileTree(dir: "${rootDir}/lib/ext-demo", include: [
+            'lucene-core-3.6.0.jar', 'lucene-highlighter-3.6.0.jar'
+        ]),
+        fileTree(dir: "${rootDir}/lib", include: [
+            'ariba.util.jar', 'ariba.expr.jar', 'ariba.aribaweb.jar', 'ariba.widgets.jar'
+        ])
+    )
+}
+
+def getGroovyAppClasspath() {
+    return getGroovyScriptClasspath().plus(fileTree(dir: "${rootDir}/lib", include: [
+        'ariba.metaui.jar', 'ariba.groovyloader.jar'
+    ]))
+}
+
+def getBuildClasspath() {
+    def servletJar = new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists() ? "C:/apache-tomcat-9.0.115/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
+    def extBuildTree = fileTree(dir: "${rootDir}/lib/ext-build", include: "*.jar")
+    extBuildTree.exclude 'javax.servlet.zip'
+
+    def coreProjectNames = ['util', 'expr', 'aribaweb-core', 'widgets', 'metaui', 'groovyloader', 'awreload', 'awreload-adaptor-jdk15']
+    def coreJars = fileTree(dir: "${rootDir}/lib", include: "ariba.*.jar")
+    coreJars.exclude 'ariba.appcore.jar'
+    coreJars.exclude 'ariba.AtIssue.jar'
+    coreJars.exclude 'ariba.Demo.jar'
+    coreJars.exclude 'ariba.GuestBook.jar'
+    coreJars.exclude 'ariba.MasterDetail.jar'
+    coreJars.exclude 'ariba.site.jar'
+    coreJars.exclude 'ariba.metaui-jpa.jar'
+    coreJars.exclude 'ariba.*-src.jar'
+
+    def coreRuntimeClasspaths = subprojects.findAll { coreProjectNames.contains(it.name) }.collect { it.sourceSets.main.runtimeClasspath }
+
+    return files(
+        servletJar,
+        fileTree(dir: "${rootDir}/lib/ext", include: "*.jar"),
+        extBuildTree,
+        coreJars,
+        coreRuntimeClasspaths
+    )
+}
+
+def getTomcatHome() {
+    if (new File("${rootDir}/tools/tomcat").exists()) {
+        return "${rootDir}/tools/tomcat"
+    } else if (new File("C:/apache-tomcat-9.0.115").exists()) {
+        return "C:/apache-tomcat-9.0.115"
+    }
+    return ""
+}
+
+task 'ensure-tomcat-conf' {
+    description = "Copies Tomcat configuration files to AW_HOME/conf."
+    doLast {
+        def tomcatHome = getTomcatHome()
+        def confDir = file("${rootDir}/conf")
+        if (!file("${confDir}/server.xml").exists()) {
+            println "Copying Tomcat configuration from ${tomcatHome}/conf to ${confDir}..."
+            confDir.mkdirs()
+            copy {
+                from "${tomcatHome}/conf"
+                into confDir
+            }
+            
+            // Check if port prefix override is specified
+            if (project.hasProperty('tomcat.port.prefix.override')) {
+                def pre = project.property('tomcat.port.prefix.override')
+                println "Updating tomcat server.xml with port prefix: ${pre}"
+                def serverXml = file("${confDir}/server.xml")
+                if (serverXml.exists()) {
+                    def conf = serverXml.text.replace("port=\"8", "port=\"" + pre)
+                    conf = conf.replace("Port=\"8", "Port=\"" + pre)
+                    serverXml.text = conf
+                }
+            }
+        }
+
+        // Always restrict common.loader in catalina.properties to exclude catalina.base libs
+        def catalinaProperties = file("${confDir}/catalina.properties")
+        if (catalinaProperties.exists()) {
+            def props = catalinaProperties.text
+            if (props.contains('common.loader="${catalina.base}/lib"')) {
+                println "Updating tomcat catalina.properties to restrict common.loader..."
+                props = props.replaceAll(/(?ms)^common\.loader=.*?(?=^server\.loader=)/) {
+                    'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"\n\n'
+                }
+                catalinaProperties.text = props
+            }
+        }
+    }
+}
+
+def configureTomcat(JavaExec execTask) {
+    execTask.dependsOn webapps
+    execTask.dependsOn 'ensure-tomcat-conf'
+
+    def tomcatHome = getTomcatHome()
+    execTask.mainClass = 'org.apache.catalina.startup.Bootstrap'
+    execTask.classpath = files(
+        "${tomcatHome}/bin/bootstrap.jar",
+        "${tomcatHome}/bin/tomcat-juli.jar"
+    )
+
+    execTask.jvmArgs = [
+        '-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',
+        "-Djava.util.logging.config.file=${rootDir}/conf/logging.properties",
+        '-Xmx256m',
+        '-Dariba.aribaweb.Debug=true',
+        "-Dcatalina.home=${tomcatHome}",
+        "-Dcatalina.base=${rootDir}",
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.io=ALL-UNNAMED',
+        '--add-opens=java.base/java.nio=ALL-UNNAMED',
+        '--add-opens=java.base/java.math=ALL-UNNAMED',
+        '--add-opens=java.base/java.net=ALL-UNNAMED',
+        '--add-opens=java.base/java.text=ALL-UNNAMED',
+        '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
+        '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+        '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+    ]
+
+    execTask.environment 'CATALINA_HOME', tomcatHome
+    execTask.environment 'ARIBAWEB_HOME', "${rootDir}"
+    execTask.environment 'AW_HOME', "${rootDir}"
+    execTask.environment 'AW_RELOAD_CLASSES_ROOT', "${buildDir}/classes"
+
+    def searchPaths = []
+    subprojects.each { sub ->
+        searchPaths << sub.projectDir.absolutePath
+    }
+    execTask.environment 'ARIBA_AW_SEARCH_PATH', searchPaths.join(';')
+
+    execTask.doFirst {
+        println "Starting Tomcat on http://localhost:8080/ (or alternate port in server.xml)..."
+    }
+}
+
+// Lifecycle tasks for webapps and running tomcat
+task webapps {
+    description = "Assembles and explodes all WAR files into the root webapps/ directory."
+    dependsOn provider {
+        subprojects.findAll { it.plugins.hasPlugin('war') }.collect { it.tasks.named('explodeWar') }
+    }
+}
+
+task tomcat(type: JavaExec) {
+    description = "Starts Tomcat and runs the exploded webapps."
+    configureTomcat(it)
+}
+
+task tomcatBrowse(type: JavaExec) {
+    description = "Starts Tomcat and opens the app in the browser."
+    configureTomcat(it)
+    doFirst {
+        Thread.start {
+            def appUrl = "http://localhost:8080/Demo/AribaWeb"
+            println "Browser launcher thread started. Waiting for Tomcat to respond at ${appUrl}..."
+            long startTime = System.currentTimeMillis()
+            boolean success = false
+            while (System.currentTimeMillis() - startTime < 45000) {
+                try {
+                    Thread.sleep(1000)
+                    def connection = new URL("http://localhost:8080/Demo/ad/ping").openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 1000
+                    connection.readTimeout = 1000
+                    int code = connection.responseCode
+                    if (code == 200) {
+                        success = true
+                        break
+                    }
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+            if (success) {
+                println "Tomcat is up! Opening ${appUrl} in browser..."
+                if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+                    Runtime.getRuntime().exec("cmd /c start " + appUrl)
+                } else {
+                    try {
+                        Runtime.getRuntime().exec("xdg-open " + appUrl)
+                    } catch (Exception e) {
+                        try {
+                            Runtime.getRuntime().exec("open " + appUrl)
+                        } catch (Exception ex) {
+                            println "Could not open browser automatically: ${ex.message}"
+                        }
+                    }
+                }
+            } else {
+                println "Tomcat ping timed out or failed. Not opening browser."
+            }
+        }
+    }
+}
+
+task launch {
+    description = "Rebuild WAR dirs, start Tomcat, opens browser window."
+    dependsOn tomcatBrowse
+}
+
+task 'tomcat-build-browse' {
+    dependsOn tomcatBrowse
+}
+
+task tomcatBuild {
+    description = "Rebuild all webapps and starts Tomcat."
+    dependsOn webapps, tomcat
+}
+
+task 'tomcat-build' {
+    description = "Rebuild all webapps and starts Tomcat (alias)."
+    dependsOn tomcatBuild
+}
+
+task tomcatExec(type: Exec) {
+    description = "Builds webapps, then runs Tomcat using catalina script."
+    dependsOn webapps
+    dependsOn 'ensure-tomcat-conf'
+
+    def tomcatHome = getTomcatHome()
+    def catalinaCommand = System.getProperty("os.name").toLowerCase().contains("windows") ? 'catalina.bat' : 'catalina.sh'
+    def tomcatBin = "${tomcatHome}/bin"
+    workingDir rootDir
+
+    executable "${tomcatBin}/${catalinaCommand}"
+    args 'jpda', 'run'
+
+    environment 'CATALINA_BASE', "${rootDir}"
+    environment 'CATALINA_HOME', tomcatHome
+    environment 'ARIBAWEB_HOME', "${rootDir}"
+    environment 'ARIBA_AW_SEARCH_PATH', subprojects.collect { it.projectDir.absolutePath }.join(';')
+
+    doFirst {
+        println "Launching tomcat with CATALINA_BASE=${rootDir}..."
+    }
+}
+
+task 'tomcat-exec' {
+    dependsOn tomcatExec
+}
+
+task 'tomcat-build-exec' {
+    dependsOn tomcatExec
+}
+
+task jars {
+    description = "Packages the JAR files for all subprojects."
+    dependsOn provider { subprojects.collect { it.tasks.matching { t -> t.name == 'jar' } } }
+}
+
+task wars {
+    description = "Assembles WAR files for all webapp subprojects."
+    dependsOn jars, provider { subprojects.collect { it.tasks.matching { t -> t.name == 'war' } } }
+}
+
+task groovysh(type: JavaExec) {
+    description = "Launches the Groovy Console."
+    mainClass = 'groovy.ui.Console'
+    classpath = files(
+        subprojects.collect { it.sourceSets.main.runtimeClasspath }
+    )
+}
+
+task docResources {
+    description = "Prepares documentation resources."
+    onlyIf { !project.hasProperty('nodoc') }
+    doLast {
+        def docResourceDir = file("${rootDir}/docs/resource")
+        def widgetsResourceDir = file("${rootDir}/src/widgets/resource/webserver")
+        delete docResourceDir
+        docResourceDir.mkdirs()
+        delete file("${rootDir}/site")
+        file("${rootDir}/site").mkdirs()
+        copy {
+            from "${rootDir}/src/docs/index.html"
+            into "${rootDir}/docs"
+        }
+        copy {
+            from "${widgetsResourceDir}/widg/prettify.js"
+            into docResourceDir
+        }
+        copy {
+            from "${widgetsResourceDir}/branding/ariba/widgets.css"
+            into docResourceDir
+        }
+    }
+}
+
+task processDoc(type: JavaExec) {
+    description = "Runs the processdoc.groovy script."
+    dependsOn docResources, jars
+    onlyIf { !project.hasProperty('nodoc') }
+
+    doFirst {
+        file("${rootDir}/docs/tutorial").mkdirs()
+    }
+
+    mainClass = 'groovy.ui.GroovyMain'
+    classpath = getGroovyScriptClasspath()
+    args = [
+        "${rootDir}/bin/processdoc.groovy",
+        "${rootDir}/tools/templates/doctemplate.awl",
+        "${rootDir}/src/site/Documentation",
+        "${rootDir}/docs/tutorial"
+    ]
+}
+
+task site(type: JavaExec) {
+    description = "Generates the static site."
+    dependsOn jars
+    doFirst {
+        def siteDir = file("${rootDir}/site")
+        delete siteDir
+        siteDir.mkdirs()
+        def siteSrc = file("${rootDir}/src/site")
+        copy {
+            from "${siteSrc}/docroot"
+            into siteDir
+        }
+
+        def tmpScript = file("${buildDir}/tmp/generatesite.groovy")
+        tmpScript.parentFile.mkdirs()
+        tmpScript.text = """
+            import ariba.ui.aribaweb.core.AWConcreteApplication
+            import ariba.ui.aribaweb.util.AWNamespaceManager
+            import ariba.ui.aribaweb.util.AWStaticSiteGenerator
+
+            Thread.currentThread().setContextClassLoader(AWConcreteApplication.class.getClassLoader())
+            System.getProperties()["AWAPI.URL"] = "${project.findProperty('AWAPI.URL') ?: 'http://aribaweb.org/api'}"
+            System.getProperties()["AWAPI.RootDirectory"] = "${project.findProperty('AWAPI.RootDirectory') ?: file("${rootDir}/docs/api").absolutePath.replace('\\', '/')}"
+            println "AWAPI.URL = \${System.getProperties()['AWAPI.URL']}"
+            println "Generating to ${siteDir.absolutePath.replace('\\', '/')}"
+            AWStaticSiteGenerator.main(["${siteDir.absolutePath.replace('\\', '/')}", "${siteSrc.absolutePath.replace('\\', '/')}", ".", "http://aribaweb.org"] as String[])
+        """
+    }
+
+    mainClass = 'groovy.ui.GroovyMain'
+    classpath = getGroovyAppClasspath()
+    args = ["${buildDir}/tmp/generatesite.groovy"]
+}
+
+task runSite(type: JavaExec) {
+    description = "Runs Tomcat configured for the AribaWeb site."
+    configureTomcat(it)
+    jvmArgs "-DAWAPI.URL=${project.findProperty('AWAPI.URL') ?: 'http://aribaweb.org/api'}"
+    jvmArgs "-DAWAPI.RootDirectory=${project.findProperty('AWAPI.RootDirectory') ?: file("${rootDir}/docs/api").absolutePath.replace('\\\\', '/')}"
+}
+
+task generateJavadocs(type: Javadoc) {
+    description = "Generates public API Javadocs."
+    onlyIf { !project.hasProperty('nodoc') }
+    dependsOn jars
+
+    source = files(
+        fileTree(dir: 'src/util', include: '**/*.java'),
+        fileTree(dir: 'src/expr', include: '**/*.java'),
+        fileTree(dir: 'src/aribaweb', include: '**/*.java'),
+        fileTree(dir: 'src/widgets', include: '**/*.java', exclude: 'ariba/ui/dev/**'),
+        fileTree(dir: 'src/metaui', include: '**/*.java'),
+        fileTree(dir: 'src/metaui-jpa', include: '**/*.java')
+    )
+
+    destinationDir = file("${rootDir}/docs/api")
+    classpath = files(subprojects.collect { it.sourceSets.main.compileClasspath })
+
+    options {
+        overview = file('src/docs/api/overview.html')
+        windowTitle = "AribaWeb 1.0-dev API"
+        docTitle = "AribaWeb 1.0-dev API"
+        bottom = "<a href='http://aribaweb.org' target='_top'>AribaWeb User Interface Development Framework</a><br/>Copyright &copy; 2000-2026 Ariba, Inc.  All Rights Reserved."
+        encoding = "UTF-8"
+        memberLevel = JavadocMemberLevel.PUBLIC
+        tags = ["note:a:Note:", "aribaapi:X"]
+        addStringOption('Xdoclint:none', '-quiet')
+
+        group("aribaweb", ["ariba.ui.aribaweb.*", "ariba.ui.servletadaptor"])
+        group("widgets", ["ariba.ui.widgets", "ariba.ui.table", "ariba.ui.outline", "ariba.ui.validation", "ariba.ui.wizard.*"])
+        group("metaui", ["ariba.ui.meta.*"])
+        group("util", ["ariba.util.fieldvalue", "ariba.util.formatter", "ariba.util.core", "ariba.util.io", "ariba.util.log", "ariba.util.i18n", "ariba.util.shutdown"])
+        group("expr", ["ariba.util.expr", "ariba.util.fieldtype"])
+    }
+}
+
+task javadocsInternal(type: Javadoc) {
+    description = "Generates internal package-private Javadocs."
+    onlyIf { !project.hasProperty('nodoc') }
+    dependsOn jars
+
+    source = files(
+        fileTree(dir: 'src/util', include: '**/*.java'),
+        fileTree(dir: 'src/expr', include: '**/*.java'),
+        fileTree(dir: 'src/aribaweb', include: '**/*.java'),
+        fileTree(dir: 'src/widgets', include: '**/*.java', exclude: 'ariba/ui/dev/**'),
+        fileTree(dir: 'src/metaui', include: '**/*.java'),
+        fileTree(dir: 'src/metaui-jpa', include: '**/*.java')
+    )
+
+    destinationDir = file("${rootDir}/docs/api-internal")
+    classpath = files(subprojects.collect { it.sourceSets.main.compileClasspath })
+
+    options {
+        overview = file('src/docs/api/overview.html')
+        windowTitle = "AribaWeb 1.0-dev API (Internal)"
+        docTitle = "AribaWeb 1.0-dev API (Internal)"
+        bottom = "<a href='http://aribaweb.org' target='_top'>AribaWeb User Interface Development Framework</a><br/>Copyright &copy; 2000-2026 Ariba, Inc.  All Rights Reserved."
+        encoding = "UTF-8"
+        memberLevel = JavadocMemberLevel.PACKAGE
+        tags = ["note:a:Note:", "aribaapi:X"]
+        addStringOption('Xdoclint:none', '-quiet')
+
+        group("aribaweb", ["ariba.ui.aribaweb.*", "ariba.ui.servletadaptor"])
+        group("widgets", ["ariba.ui.widgets", "ariba.ui.table", "ariba.ui.outline", "ariba.ui.validation", "ariba.ui.wizard.*"])
+        group("metaui", ["ariba.ui.meta.*"])
+        group("util", ["ariba.util.fieldvalue", "ariba.util.formatter", "ariba.util.core", "ariba.util.io", "ariba.util.log", "ariba.util.i18n", "ariba.util.shutdown"])
+        group("expr", ["ariba.util.expr", "ariba.util.fieldtype"])
+    }
+}
+
+task awapidocs(type: JavaExec) {
+    description = "Generates AWApi documentation."
+    dependsOn jars
+    enabled = true
+
+    mainClass = 'groovy.ui.GroovyMain'
+    classpath = getBuildClasspath().plus(files("${rootDir}/lib/ext/groovy-all.jar"))
+
+    doFirst {
+        file("${rootDir}/docs/api").mkdirs()
+        file("${rootDir}/docs/xsd").mkdirs()
+        file("${buildDir}/tmp").mkdirs()
+
+        def apiDocScript = file("${buildDir}/tmp/generate_apidocs.groovy")
+        apiDocScript.text = """
+            import ariba.ui.meta.persistence.PersistenceMeta
+            import ariba.ui.dev.AWApiDocGenerator
+
+            PersistenceMeta.setDoNotConnect(true)
+            AWApiDocGenerator.main(args)
+        """
+        errorOutput = new FileOutputStream(file("${buildDir}/awapidocs-error.log"))
+    }
+
+    args = [
+        "${buildDir}/tmp/generate_apidocs.groovy",
+        "${rootDir}/docs/api",
+        "${rootDir}/docs/xsd",
+        "${rootDir}/src/aribaweb",
+        "${rootDir}/src/widgets",
+        "${rootDir}/src/metaui"
+    ]
+}
+
+task javadocs {
+    description = "Generates public Javadocs and AWApi documentation."
+    dependsOn generateJavadocs, awapidocs
+}
+
+task 'javadocs-internal' {
+    dependsOn javadocsInternal
+}
+
+task docs {
+    description = "Generates all documentation."
+    dependsOn javadocs, processDoc
+}
+
+task indexDoc(type: JavaExec) {
+    description = "Indexes documentation using Lucene."
+    onlyIf { !project.hasProperty('nodoc') }
+    dependsOn jars
+
+    mainClass = 'groovy.ui.GroovyMain'
+    classpath = getGroovyScriptClasspath().plus(files(
+        "${rootDir}/lib/ariba.Demo.jar",
+        "${rootDir}/lib/app.Demo.jar"
+    ))
+
+    doFirst {
+        file("${rootDir}/docs/index.lucene").mkdirs()
+    }
+
+    args = [
+        "${rootDir}/bin/indexsource.groovy",
+        "${rootDir}/docs/index.lucene",
+        "${rootDir}/docs/api/",
+        '$ARIBAWEB_HOME/docs/api',
+        'doc',
+        "${rootDir}/docs/tutorial/",
+        '$ARIBAWEB_HOME/docs/tutorial',
+        'tutorial',
+        "${rootDir}/src/aribaweb/",
+        '$ARIBAWEB_HOME/src/aribaweb',
+        'source',
+        "${rootDir}/src/widgets/",
+        '$ARIBAWEB_HOME/src/widgets',
+        'source',
+        "${rootDir}/src/metaui/",
+        '$ARIBAWEB_HOME/src/metaui',
+        'source',
+        "${rootDir}/examples/",
+        '$ARIBAWEB_HOME/examples',
+        'examples'
+    ]
+}
+
+task 'index-doc' {
+    dependsOn indexDoc
+}
+
+task groovy(type: JavaExec) {
+    description = "Runs a Groovy script specified by -Pscript and -Pargs."
+    mainClass = 'groovy.ui.GroovyMain'
+    classpath = getGroovyScriptClasspath()
+
+    doFirst {
+        if (!project.hasProperty('script')) {
+            throw new GradleException("Please specify the script to run using -Pscript=/path/to/script.groovy")
+        }
+        args = [project.property('script')]
+        if (project.hasProperty('args')) {
+            args.addAll(project.property('args').split(' '))
+        }
+    }
+}
+
+task groovyLucene(type: JavaExec) {
+    description = "Runs a Groovy script with Lucene classpath specified by -Pscript and -Pargs."
+    mainClass = 'groovy.ui.GroovyMain'
+    classpath = getGroovyScriptClasspath().plus(files(
+        "${rootDir}/lib/ariba.Demo.jar",
+        "${rootDir}/lib/app.Demo.jar"
+    ))
+
+    doFirst {
+        if (!project.hasProperty('script')) {
+            throw new GradleException("Please specify the script to run using -Pscript=/path/to/script.groovy")
+        }
+        args = [project.property('script')]
+        if (project.hasProperty('args')) {
+            args.addAll(project.property('args').split(' '))
+        }
+    }
+}
+
+task 'groovy-lucene' {
+    dependsOn groovyLucene
+}
+
+task awAllSrcJar(type: Zip) {
+    dependsOn jars
+    archiveFileName = "ariba.aw-all-src.jar"
+    destinationDirectory = file("${rootDir}/lib")
+    def patterns = ['**/*.java', '**/*.awl', '**/*.groovy', '**/*.js', '**/*.css', '**/*.htm']
+    from('src/util') { include patterns; exclude 'build/**' }
+    from('src/expr') { include patterns; exclude 'build/**' }
+    from('src/aribaweb') { include patterns; exclude 'build/**' }
+    from('src/widgets') { include patterns; exclude 'build/**' }
+    from('src/metaui') { include patterns; exclude 'build/**' }
+    from('src/metaui-jpa') { include patterns; exclude 'build/**' }
+    from('src/awreload') { include patterns; exclude 'build/**' }
+}
+
+task appcoreSrcJar(type: Zip) {
+    dependsOn jars
+    archiveFileName = "ariba.appcore-src.jar"
+    destinationDirectory = file("${rootDir}/lib")
+    def patterns = ['**/*.java', '**/*.awl', '**/*.groovy', '**/*.js', '**/*.css', '**/*.htm']
+    from('examples/appcore') { include patterns; exclude 'build/**' }
+}
+
+task srcJar {
+    description = "Packages the source JAR files."
+    dependsOn awAllSrcJar, appcoreSrcJar
+}
+
+task 'src-jar' {
+    dependsOn srcJar
+}
+
+// Check variables for packaging
+def antDistDir = System.getenv('ANT_DIST_HOME') ?: (project.findProperty('ant.dist.dir') ?: '')
+def tomcatDistDir = System.getenv('TOMCAT_DIST_HOME') ?: (project.findProperty('tomcat.dist.dir') ?: '')
+def isFullDist = (antDistDir != '' && tomcatDistDir != '')
+
+task zipBinary(type: Zip) {
+    description = "Zips the binary distribution."
+    dependsOn jars, wars, srcJar, docs, site, indexDoc
+    def ver = "1.0-dev"
+    def distDir = file("${rootDir}/dist")
+    destinationDirectory = distDir
+    archiveFileName = "aribaweb-${ver}.zip"
+
+    into("aribaweb-${ver}") {
+        from(rootDir) {
+            exclude 'dist/**', 'conf/**', 'work/**', 'classes/**', 'build/**', 'derived-src/**', 'webapps/**', 'lib/app.*', 'bin/**', 'site/**', '.gradle/**', '.git/**', '**/build/**'
+        }
+        from(rootDir) {
+            include 'bin/**'
+            fileMode = 0777
+        }
+
+        if (isFullDist) {
+            into("tools/ant") {
+                from(antDistDir) {
+                    exclude "bin/**", "docs/**"
+                }
+            }
+            into("tools/ant") {
+                from(antDistDir) {
+                    include "bin/**"
+                    fileMode = 0777
+                }
+            }
+            into("tools/tomcat") {
+                from(tomcatDistDir) {
+                    include "*", "conf/**", "lib/**"
+                }
+            }
+            into("tools/tomcat") {
+                from(tomcatDistDir) {
+                    include "bin/**"
+                    fileMode = 0777
+                }
+            }
+        }
+    }
+
+    doFirst {
+        distDir.mkdirs()
+    }
+
+    doLast {
+        writeChecksum(archiveFile.get().asFile)
+    }
+}
+
+task packageBinary {
+    description = "Packages the binary distribution."
+    dependsOn wars, srcJar, docs, site, indexDoc, zipBinary
+}
+
+task 'package-binary' {
+    dependsOn packageBinary
+}
+
+task packageSrc(type: Zip) {
+    description = "Packages the source distribution."
+    dependsOn jars
+    def ver = "1.0-dev"
+    def distDir = file("${rootDir}/dist")
+    destinationDirectory = distDir
+    archiveFileName = "aribaweb-src-${ver}.zip"
+
+    into("aribaweb-${ver}") {
+        from(rootDir) {
+            include 'tools/**', 'src/**', 'examples/**', 'lib/ext*/**', 'bin/**'
+            exclude 'dist/**', 'webapps/**', 'work/**', 'classes/**', 'derived-src/**', 'site/**', '.gradle/**', '.git/**', '**/build/**'
+        }
+    }
+
+    doFirst {
+        distDir.mkdirs()
+    }
+
+    doLast {
+        writeChecksum(archiveFile.get().asFile)
+    }
+}
+
+task 'package-src' {
+    dependsOn packageSrc
+}
+
+task 'package' {
+    description = "Packages both binary and source distributions."
+    dependsOn packageBinary, packageSrc
+}
+
+task incPackageBinary {
+    description = "Incremental packaging of binary."
+    dependsOn jars, srcJar, zipBinary
+}
+
+task 'inc-package-binary' {
+    dependsOn incPackageBinary
+}
+
+task distAll {
+    description = "Builds and packages everything."
+    dependsOn 'package'
+}
+
+task 'dist-all' {
+    dependsOn distAll
+}
+
+task ftpDist {
+    description = "Uploads distributions via FTP."
+    dependsOn distAll
+    doLast {
+        def ftpHost = System.getenv("ARIBAWEB_FTP_HOST")
+        def ftpUser = System.getenv("ARIBAWEB_FTP_USERNAME")
+        def ftpPass = System.getenv("ARIBAWEB_FTP_PASSWORD")
+        if (!ftpHost || !ftpUser || !ftpPass) {
+            throw new GradleException("FTP environment variables (ARIBAWEB_FTP_HOST, ARIBAWEB_FTP_USERNAME, ARIBAWEB_FTP_PASSWORD) must be set.")
+        }
+
+        ant.taskdef(name: 'ftp', classname: 'org.apache.tools.ant.taskdefs.optional.net.FTP')
+        ant.ftp(server: ftpHost, userid: ftpUser, password: ftpPass, remotedir: '/incoming', action: 'send') {
+            fileset(dir: "${rootDir}/dist") {
+                include(name: "*.zip")
+            }
+        }
+    }
+}
+
+task 'ftp-dist' {
+    dependsOn ftpDist
+}
+
+task clean(type: Delete) {
+    delete buildDir
+    delete fileTree(dir: "${rootDir}/lib", include: "*.jar")
+    delete "${rootDir}/webapps"
+    delete "${rootDir}/dist"
+    delete "${rootDir}/work"
+    delete "${rootDir}/docs/api"
+    delete "${rootDir}/docs/tutorial"
+    delete "${rootDir}/docs/site"
+    delete "${rootDir}/docs/index.lucene"
+    delete "${rootDir}/docs/xsd"
+    subprojects.each { sub ->
+        delete sub.layout.buildDirectory
+    }
+}
+
+allprojects {
+    tasks.withType(JavaExec).configureEach {
+        jvmArgs = (jvmArgs ?: []) + [
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.io=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/java.math=ALL-UNNAMED',
+            '--add-opens=java.base/java.net=ALL-UNNAMED',
+            '--add-opens=java.base/java.text=ALL-UNNAMED',
+            '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
+            '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+            '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+        ]
+    }
+    tasks.withType(Test).configureEach {
+        jvmArgs = (jvmArgs ?: []) + [
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.io=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/java.math=ALL-UNNAMED',
+            '--add-opens=java.base/java.net=ALL-UNNAMED',
+            '--add-opens=java.base/java.text=ALL-UNNAMED',
+            '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
+            '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+            '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+        ]
+    }
+}
+
+
+
