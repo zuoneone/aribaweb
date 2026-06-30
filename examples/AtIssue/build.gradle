@@ -82,7 +82,7 @@ task generateAribawebProperties(type: rootProject.EvaluateTemplateTask) {
         'aw.useNamespaceFromPackage': 'ariba.ui.meta',
         'aw.appName': 'AtIssue',
         'aw.packagedResourceExtensions': 'awl,oss,csv,xml',
-        'aw.preInitializer': 'ariba.appcore.Initialization.initialize',
+        'aw.initializer': 'ariba.appcore.Initialization.initialize',
         'aw.allowAccessWithoutLogin': 'true',
         'aw.dependsOn': 'ariba.groovyloader,ariba.metaui-jpa',
         'aw.inlinedJars': 'ariba.appcore.jar',

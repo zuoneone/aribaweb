@@ -30,7 +30,7 @@
 
     <property name="aw.packagedResourceExtensions" value="awl,oss,csv,xml"/>
     
-    <property name="aw.preInitializer" value="ariba.appcore.Initialization.initialize"/>
+    <property name="aw.initializer" value="ariba.appcore.Initialization.initialize"/>
     <property name="aw.allowAccessWithoutLogin" value="true"/>
 
     <!-- Enable Compass text indexing -->
