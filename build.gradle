@@ -257,14 +257,15 @@ task 'ensure-tomcat-conf' {
             }
         }
 
-        // Always restrict common.loader in catalina.properties to exclude catalina.base libs
+        // Load project-specific libs from catalina.base (AW_HOME/lib, ext and ext-jpa) via Tomcat common loader.
         def catalinaProperties = file("${confDir}/catalina.properties")
         if (catalinaProperties.exists()) {
             def props = catalinaProperties.text
-            if (props.contains('common.loader="${catalina.base}/lib"')) {
-                println "Updating tomcat catalina.properties to restrict common.loader..."
+            def newLoader = 'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar","${catalina.base}/lib/*.jar","${catalina.base}/lib/ext/*.jar","${catalina.base}/lib/ext-jpa/*.jar"\n\n'
+            if (!props.contains('${catalina.base}/lib/ext/*.jar')) {
+                println "Updating tomcat catalina.properties to include AW_HOME/lib/ext and ext-jpa..."
                 props = props.replaceAll(/(?ms)^common\.loader=.*?(?=^server\.loader=)/) {
-                    'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar"\n\n'
+                    newLoader
                 }
                 catalinaProperties.text = props
             }

@@ -7,6 +7,7 @@ dependencies {
     implementation project(':aribaweb-core')
     implementation project(':widgets')
     implementation project(':metaui')
+    implementation project(':metaui-jpa')
     implementation project(':groovyloader')
 
     implementation fileTree(dir: "${rootDir}/lib/ext-demo", include: ['*.jar', '*.zip'])

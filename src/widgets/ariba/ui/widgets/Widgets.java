@@ -50,9 +50,12 @@ public final class Widgets
 {
     private static final String BrandingConfigResourcePath = "config/branding";
     private static final String BrandingAribaResourcePath = "ariba/branding";
+    private static final String BrandingAribaUrlPath = "abacus/branding";
 
     private static final String AWWebResourcePath = "ariba/ui/aribaweb";
+    private static final String AWWebUrlPath = "abacus/ui/abacusweb";
     private static final String WidgResourcePath = "ariba/ui";
+    private static final String WidgUrlPath = "abacus/ui";
 
     private static WidgetsDelegate _delegate;
 
@@ -272,7 +275,7 @@ public final class Widgets
                                   StringUtil.strcat(resourceURL, BrandingConfigResourcePath));
 
         registerResourceDirectory(StringUtil.strcat(resourceFilePath, BrandingAribaResourcePath),
-                                  StringUtil.strcat(resourceURL, BrandingAribaResourcePath));
+                                  StringUtil.strcat(resourceURL, BrandingAribaUrlPath));
 
     }
 
@@ -283,13 +286,13 @@ public final class Widgets
         // register root package.  (Should be in aribaweb?)
         registerResourceDirectory(packageRootPath, resourceURL);
         registerResourceDirectory("./ariba/resource",
-                        StringUtil.strcat(resourceURL, "ariba/resource"));
+                        StringUtil.strcat(resourceURL, "abacus/resource"));
 
         registerResourceDirectory(StringUtil.strcat(resourceFilePath, AWWebResourcePath),
-                                  StringUtil.strcat(resourceURL, AWWebResourcePath));
+                                  StringUtil.strcat(resourceURL, AWWebUrlPath));
 
         registerResourceDirectory(StringUtil.strcat(resourceFilePath, WidgResourcePath),
-                                  StringUtil.strcat(resourceURL, WidgResourcePath));
+                                  StringUtil.strcat(resourceURL, WidgUrlPath));
     }
 
     // Used for AribaUI to register RecordPlayback control to appear

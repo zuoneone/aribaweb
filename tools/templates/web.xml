@@ -5,6 +5,16 @@
          version="4.0">
   <display-name>$servlet.displayName</display-name>
   <description>$servlet.description</description>
+
+  <filter>
+    <filter-name>AbacusResourceRewriteFilter</filter-name>
+    <filter-class>ariba.ui.servletadaptor.AbacusResourceRewriteFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>AbacusResourceRewriteFilter</filter-name>
+    <url-pattern>/docroot/abacus/*</url-pattern>
+  </filter-mapping>
+
   <servlet>
     <servlet-name>$servlet.name</servlet-name>
     <servlet-class>$servlet.class</servlet-class>
