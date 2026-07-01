@@ -272,7 +272,7 @@ function createSeries(name, data, type, isArea, isStacked, color, forcedType, yA
         type: seriesType,
         data: data,
         label: {
-            show: seriesType !== "pie" && seriesType !== "funnel",
+            show: seriesType !== "pie" && seriesType !== "funnel" && !isLine,
             position: isLine ? "top" : "inside",
             color: "#000"
         },
