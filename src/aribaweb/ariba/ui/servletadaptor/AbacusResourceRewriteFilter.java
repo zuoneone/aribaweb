@@ -50,7 +50,7 @@ public class AbacusResourceRewriteFilter implements Filter
                 servletResponse instanceof HttpServletResponse) {
             HttpServletRequest request = (HttpServletRequest)servletRequest;
             String requestUri = request.getRequestURI();
-            System.out.println("[AbacusResourceRewriteFilter] requestUri=" + requestUri);
+            // System.out.println("[AbacusResourceRewriteFilter] requestUri=" + requestUri);
             if (logger.isDebugEnabled()) {
                 logger.debug("[AbacusResourceRewriteFilter] requestUri=%s", requestUri);
             }
@@ -81,7 +81,7 @@ public class AbacusResourceRewriteFilter implements Filter
                     }
                     response.setStatus(HttpServletResponse.SC_OK);
                     OutputStream out = response.getOutputStream();
-                    System.out.println("[AbacusResourceRewriteFilter] serving resource " + resourcePath);
+                    // System.out.println("[AbacusResourceRewriteFilter] serving resource " + resourcePath);
                     if (logger.isDebugEnabled()) {
                         logger.debug("[AbacusResourceRewriteFilter] serving resource %s", resourcePath);
                     }
@@ -98,7 +98,7 @@ public class AbacusResourceRewriteFilter implements Filter
                     }
                     return;
                 }
-                System.out.println("[AbacusResourceRewriteFilter] resource not found " + resourcePath);
+                // System.out.println("[AbacusResourceRewriteFilter] resource not found " + resourcePath);
                 if (logger.isDebugEnabled()) {
                     logger.debug("[AbacusResourceRewriteFilter] resource not found %s", resourcePath);
                 }
