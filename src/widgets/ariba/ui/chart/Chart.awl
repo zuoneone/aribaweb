@@ -57,7 +57,8 @@
         Should chart animate.  Default is no.
     </Binding>
 </a:Api>\
-<a:ClientSideScript filename="fusioncharts/FusionCharts.js"/>\
+<a:ClientSideScript filename="echarts/echarts.min.js"/>\
+<a:ClientSideScript filename="echarts/echarts-gl.min.js"/>\
 <a:ClientSideScript filename="widg/flashchart.js"/>\
 
 <a:SetValue objId="$requestContext.nextElementId"/>\
@@ -79,8 +80,8 @@
             </graph>\
         </pre>\
         <a:ClientSideScript isSingleton="$false">
-            // This will open / update the flash graph
-            awInsertFlashGraph("$objId", "$dataId", "$swfUrl",
+            // Render chart with ECharts (replaces Flash/FusionCharts)
+            awInsertFlashGraph("$objId", "$dataId", "$^type:line",
                 "<a:String value='$^width:480'/>", "<a:String value='$^height:320'/>");
         </a:ClientSideScript>
     </a:RefreshRegion>
