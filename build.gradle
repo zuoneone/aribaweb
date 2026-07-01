@@ -261,7 +261,7 @@ task 'ensure-tomcat-conf' {
         def catalinaProperties = file("${confDir}/catalina.properties")
         if (catalinaProperties.exists()) {
             def props = catalinaProperties.text
-            def newLoader = 'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar","${catalina.base}/lib/*.jar","${catalina.base}/lib/ext/*.jar","${catalina.base}/lib/ext-jpa/*.jar"\n\n'
+            def newLoader = 'common.loader="${catalina.home}/lib","${catalina.home}/lib/*.jar","${catalina.base}/lib/ext/*.jar","${catalina.base}/lib/ext-jpa/*.jar"\n\n'
             if (!props.contains('${catalina.base}/lib/ext/*.jar')) {
                 println "Updating tomcat catalina.properties to include AW_HOME/lib/ext and ext-jpa..."
                 props = props.replaceAll(/(?ms)^common\.loader=.*?(?=^server\.loader=)/) {
