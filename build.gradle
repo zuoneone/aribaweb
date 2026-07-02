@@ -38,15 +38,37 @@ abstract class EvaluateTemplateTask extends JavaExec {
     }
 }
 
+def getTomcatHome() {
+    def tomcatHomeEnv = System.getenv("TOMCAT_HOME")
+    if (tomcatHomeEnv && new File(tomcatHomeEnv).exists()) {
+        return tomcatHomeEnv
+    }
+    return "${rootDir}/tools/tomcat"
+}
+
+
+def getServletJar() {
+    def tomcatHome = getTomcatHome()
+    if (tomcatHome) {
+        def jar = new File(tomcatHome, "lib/servlet-api.jar")
+        if (jar.exists()) {
+            return jar.absolutePath
+        }
+    }
+    return "${rootDir}/lib/ext-build/javax.servlet.zip"
+}
+
 subprojects {
     repositories {
         mavenCentral()
     }
     apply plugin: 'java'
 
+    layout.buildDirectory.set(rootProject.layout.buildDirectory.dir(project.name))
+
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(System.getProperty("java.version").startsWith("1.") ? 8 : 17)
         }
     }
 
@@ -99,16 +121,9 @@ subprojects {
         def extBuildTree = fileTree(dir: "${rootDir}/lib/ext-build", include: ['*.jar', '*.zip'])
         extBuildTree.exclude 'javax.servlet.zip'
         implementation extBuildTree
-        if (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists()) {
-            println "Project ${project.name}: Using tools servlet-api"
-            implementation files("${rootDir}/tools/tomcat/lib/servlet-api.jar")
-        } else if (new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists()) {
-            println "Project ${project.name}: Using Tomcat 9.0 servlet-api"
-            implementation files("C:/apache-tomcat-9.0.115/lib/servlet-api.jar")
-        } else {
-            println "Project ${project.name}: Using fallback javax.servlet.zip"
-            implementation files("${rootDir}/lib/ext-build/javax.servlet.zip")
-        }
+        def servletJarPath = getServletJar()
+        println "Project ${project.name}: Using servlet-api from ${servletJarPath}"
+        implementation files(servletJarPath)
     }
 
     tasks.withType(GroovyCompile).configureEach {
@@ -167,7 +182,7 @@ def writeChecksum(File zipFile) {
 }
 
 def getGroovyScriptClasspath() {
-    def servletJar = new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists() ? "C:/apache-tomcat-9.0.115/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
+    def servletJar = getServletJar()
 
     return files(
         "${rootDir}/lib/ext/groovy-all.jar",
@@ -192,7 +207,7 @@ def getGroovyAppClasspath() {
 }
 
 def getBuildClasspath() {
-    def servletJar = new File("C:/apache-tomcat-9.0.115/lib/servlet-api.jar").exists() ? "C:/apache-tomcat-9.0.115/lib/servlet-api.jar" : (new File("${rootDir}/tools/tomcat/lib/servlet-api.jar").exists() ? "${rootDir}/tools/tomcat/lib/servlet-api.jar" : "${rootDir}/lib/ext-build/javax.servlet.zip")
+    def servletJar = getServletJar()
     def extBuildTree = fileTree(dir: "${rootDir}/lib/ext-build", include: "*.jar")
     extBuildTree.exclude 'javax.servlet.zip'
 
@@ -218,14 +233,7 @@ def getBuildClasspath() {
     )
 }
 
-def getTomcatHome() {
-    if (new File("${rootDir}/tools/tomcat").exists()) {
-        return "${rootDir}/tools/tomcat"
-    } else if (new File("C:/apache-tomcat-9.0.115").exists()) {
-        return "C:/apache-tomcat-9.0.115"
-    }
-    return ""
-}
+// getTomcatHome() is defined at the top scope
 
 task 'ensure-tomcat-conf' {
     description = "Copies Tomcat configuration files to AW_HOME/conf."
@@ -279,25 +287,30 @@ def configureTomcat(JavaExec execTask) {
         "${tomcatHome}/bin/tomcat-juli.jar"
     )
 
+    def isJava8OrOlder = System.getProperty("java.version").startsWith("1.")
     execTask.jvmArgs = [
         '-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',
         "-Djava.util.logging.config.file=${rootDir}/conf/logging.properties",
         '-Xmx256m',
         '-Dariba.aribaweb.Debug=true',
         "-Dcatalina.home=${tomcatHome}",
-        "-Dcatalina.base=${rootDir}",
-        '--add-opens=java.base/java.lang=ALL-UNNAMED',
-        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
-        '--add-opens=java.base/java.util=ALL-UNNAMED',
-        '--add-opens=java.base/java.io=ALL-UNNAMED',
-        '--add-opens=java.base/java.nio=ALL-UNNAMED',
-        '--add-opens=java.base/java.math=ALL-UNNAMED',
-        '--add-opens=java.base/java.net=ALL-UNNAMED',
-        '--add-opens=java.base/java.text=ALL-UNNAMED',
-        '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
-        '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
-        '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+        "-Dcatalina.base=${rootDir}"
     ]
+    if (!isJava8OrOlder) {
+        execTask.jvmArgs += [
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.io=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/java.math=ALL-UNNAMED',
+            '--add-opens=java.base/java.net=ALL-UNNAMED',
+            '--add-opens=java.base/java.text=ALL-UNNAMED',
+            '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
+            '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+            '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+        ]
+    }
 
     execTask.environment 'CATALINA_HOME', tomcatHome
     execTask.environment 'ARIBAWEB_HOME', "${rootDir}"
@@ -917,35 +930,40 @@ task clean(type: Delete) {
 }
 
 allprojects {
+    def isJava8OrOlder = System.getProperty("java.version").startsWith("1.")
     tasks.withType(JavaExec).configureEach {
-        jvmArgs = (jvmArgs ?: []) + [
-            '--add-opens=java.base/java.lang=ALL-UNNAMED',
-            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
-            '--add-opens=java.base/java.util=ALL-UNNAMED',
-            '--add-opens=java.base/java.io=ALL-UNNAMED',
-            '--add-opens=java.base/java.nio=ALL-UNNAMED',
-            '--add-opens=java.base/java.math=ALL-UNNAMED',
-            '--add-opens=java.base/java.net=ALL-UNNAMED',
-            '--add-opens=java.base/java.text=ALL-UNNAMED',
-            '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
-            '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
-            '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
-        ]
+        if (!isJava8OrOlder) {
+            jvmArgs = (jvmArgs ?: []) + [
+                '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+                '--add-opens=java.base/java.util=ALL-UNNAMED',
+                '--add-opens=java.base/java.io=ALL-UNNAMED',
+                '--add-opens=java.base/java.nio=ALL-UNNAMED',
+                '--add-opens=java.base/java.math=ALL-UNNAMED',
+                '--add-opens=java.base/java.net=ALL-UNNAMED',
+                '--add-opens=java.base/java.text=ALL-UNNAMED',
+                '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
+                '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+                '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+            ]
+        }
     }
     tasks.withType(Test).configureEach {
-        jvmArgs = (jvmArgs ?: []) + [
-            '--add-opens=java.base/java.lang=ALL-UNNAMED',
-            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
-            '--add-opens=java.base/java.util=ALL-UNNAMED',
-            '--add-opens=java.base/java.io=ALL-UNNAMED',
-            '--add-opens=java.base/java.nio=ALL-UNNAMED',
-            '--add-opens=java.base/java.math=ALL-UNNAMED',
-            '--add-opens=java.base/java.net=ALL-UNNAMED',
-            '--add-opens=java.base/java.text=ALL-UNNAMED',
-            '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
-            '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
-            '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
-        ]
+        if (!isJava8OrOlder) {
+            jvmArgs = (jvmArgs ?: []) + [
+                '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+                '--add-opens=java.base/java.util=ALL-UNNAMED',
+                '--add-opens=java.base/java.io=ALL-UNNAMED',
+                '--add-opens=java.base/java.nio=ALL-UNNAMED',
+                '--add-opens=java.base/java.math=ALL-UNNAMED',
+                '--add-opens=java.base/java.net=ALL-UNNAMED',
+                '--add-opens=java.base/java.text=ALL-UNNAMED',
+                '--add-opens=java.base/java.util.regex=ALL-UNNAMED',
+                '--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED',
+                '--add-opens=java.xml/com.sun.org.apache.xerces.internal.dom=ALL-UNNAMED'
+            ]
+        }
     }
 }
 

@@ -44,3 +44,6 @@ project(':MasterDetail').projectDir = file('examples/MasterDetail')
 
 include 'site'
 project(':site').projectDir = file('src/site')
+
+include 'codex1'
+project(':codex1').projectDir = file('examples/codex1')

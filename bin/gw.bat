@@ -41,9 +41,25 @@ echo Setting GRADLE_HOME to: !CLEAN_GRADLE_HOME!
 set "JAVA_HOME=!CLEAN_JAVA_HOME!"
 set "PATH=!CLEAN_JAVA_HOME!\bin;!CLEAN_GRADLE_HOME!\bin;!PATH!"
 
+set "JAVA_VERSION_STR="
+for /f "tokens=3" %%g in ('^""!CLEAN_JAVA_HOME!\bin\java.exe" -version 2^>^&1 ^| findstr /i "version"^"') do (
+    set "JAVA_VERSION_STR=%%g"
+)
+if not "!JAVA_VERSION_STR!" == "" (
+    set "JAVA_VERSION_STR=!JAVA_VERSION_STR:"=!"
+)
+set "GRADLE_JVM_ARGS="
+if "!JAVA_VERSION_STR:~0,2!" == "1." (
+    set "GRADLE_JVM_ARGS=-Dorg.gradle.jvmargs=-Xmx1024m"
+)
+
 rem Execute Gradle
 echo Running Gradle...
-call "!CLEAN_GRADLE_HOME!\bin\gradle.bat" %*
+if not "!GRADLE_JVM_ARGS!"=="" (
+    call "!CLEAN_GRADLE_HOME!\bin\gradle.bat" !GRADLE_JVM_ARGS! %*
+) else (
+    call "!CLEAN_GRADLE_HOME!\bin\gradle.bat" %*
+)
 goto end
 
 :err_JAVA_HOME

@@ -17,12 +17,10 @@
     </Copyright>
 
     <Overview>
-        Generates the FusionCharts flash chart control.
+        Generates data for the browser-native chart control.
 
         Component content should be the XML for the chart data points.
-        This component is smart about updating the flash object with new data
-        via incremental refresh if the component content XML changes (without instantiating
-        a new flash control)
+        This component is smart about updating the chart if the component content XML changes.
     </Overview>
 
     <Binding key="displayGroup" type="AWTDisplayGroup" required="$true" direction="get">

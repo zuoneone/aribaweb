@@ -19,6 +19,23 @@ export PATH="$CLEAN_JAVA_HOME/bin:$CLEAN_GRADLE_HOME/bin:$PATH"
 
 echo "Setting JAVA_HOME to: $JAVA_HOME"
 echo "Setting GRADLE_HOME to: $CLEAN_GRADLE_HOME"
-echo "Running Gradle..."
 
-exec "$CLEAN_GRADLE_HOME/bin/gradle" "$@"
+if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    java_version=$("$JAVA_HOME/bin/java" -version 2>&1 | grep "version" | head -n 1 | cut -d'"' -f2)
+else
+    java_version=$(java -version 2>&1 | grep "version" | head -n 1 | cut -d'"' -f2)
+fi
+
+GRADLE_JVM_ARGS=""
+case "$java_version" in
+    1.*)
+        GRADLE_JVM_ARGS="-Dorg.gradle.jvmargs=-Xmx1024m"
+        ;;
+esac
+
+echo "Running Gradle..."
+if [ -n "$GRADLE_JVM_ARGS" ]; then
+    exec "$CLEAN_GRADLE_HOME/bin/gradle" "$GRADLE_JVM_ARGS" "$@"
+else
+    exec "$CLEAN_GRADLE_HOME/bin/gradle" "$@"
+fi

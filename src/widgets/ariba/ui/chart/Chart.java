@@ -18,9 +18,6 @@
 package ariba.ui.chart;
 
 import ariba.util.core.Assert;
-import ariba.util.core.FastStringBuffer;
-import ariba.util.core.ListUtil;
-import ariba.util.core.StringUtil;
 import ariba.ui.aribaweb.core.AWComponent;
 import ariba.ui.aribaweb.html.BindingNames;
 
@@ -46,16 +43,14 @@ public class Chart extends AWComponent
         super.sleep();
     }
 
-    public String swfUrl ()
+    public String chartSource ()
     {
         String filename = stringValueForBinding(BindingNames.filename);
         if (filename == null) {
             String type = stringValueForBinding("type");
             Assert.that(type != null, "Must specify filename or type for chart");
-            filename = "fusioncharts/FCF_" + type + ".swf";
+            return type;
         }
-        String url = session().resourceManager().urlForResourceNamed(filename);
-        Assert.that(url !=null, "Couldn't find resource for chart file: %s", filename);
-        return url;
+        return filename;
     }
 }
