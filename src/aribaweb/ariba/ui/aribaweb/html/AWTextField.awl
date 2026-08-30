@@ -116,6 +116,10 @@
         INPUT size (if not specified tfW class applied, resulting in 156px wide field)
     </Binding>
 
+    <Binding key="toolParamDescription" direction="get" type="String" required="$false">
+        WebMCP declarative parameter description rendered as the input's "toolparamdescription" HTML attribute.
+    </Binding>
+
     <IncludeExample component="TextFieldExample"/>
 
     <Example name="Basic Use">
@@ -134,6 +138,7 @@
         bh="$^behavior:TF"
         onBLur="$onBlurString"
         _pl="$formatPlaceHolder"
+        toolparamdescription="$^toolParamDescription"
         otherBindings="$otherBindingsValues"
         autocorrect="off" autocapitalize="off"/>\
     <a:RefreshRegion>\

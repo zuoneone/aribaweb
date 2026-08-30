@@ -51,7 +51,8 @@ public class AWTextArea extends AWComponent
          BindingNames.onKeyDown,
          BindingNames.showMaxLength,
          BindingNames.placeholder,
-         BindingNames.behavior
+         BindingNames.behavior,
+         BindingNames.toolParamDescription
     };
     public AWEncodedString _elementId;
     public AWEncodedString _textAreaId;

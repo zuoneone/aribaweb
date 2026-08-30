@@ -193,6 +193,10 @@ abstract public class AWBindingNames extends AWBaseObject
     public static final String sessionless            = "sessionless";
     public static final String focus                  = "focus";
     public static final String placeholder            = "placeholder";
+    public static final String toolName               = "toolName";
+    public static final String toolDescription        = "toolDescription";
+    public static final String toolAutoSubmit         = "toolAutoSubmit";
+    public static final String toolParamDescription   = "toolParamDescription";
 
 
     // ** These are not a binding names -- just a constants that need homes

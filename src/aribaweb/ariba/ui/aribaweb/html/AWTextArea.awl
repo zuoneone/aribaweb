@@ -87,6 +87,10 @@
     <Binding key="behavior" type="Object" required="$false" direction="get">
         For internal use: Allow for override of text field behavior.
     </Binding>
+
+    <Binding key="toolParamDescription" direction="get" type="String" required="$false">
+        WebMCP declarative parameter description rendered as the textarea's "toolparamdescription" HTML attribute.
+    </Binding>
 </a:Api>\
 <a:If ifTrue="$isEditable">
     <a:If ifFalse="$showMaxLengthIndicator">\
@@ -121,7 +125,7 @@
               bh="$^behavior:TA" _mL="$maxLength" _isRF="$^isRefresh"
               _pl="$formatPlaceHolder" onBLur="$onBlurString" class="$cssClass"
               otherBindings="$otherBindingsValues" id="$textAreaId" disabled="$disabled"
-              onpaste="$onPasteString">\
+              toolparamdescription="$^toolParamDescription" onpaste="$onPasteString">\
         <a:String value="$formattedString" escapeHtml="$^escapeHtml:$true"/>\
     </textarea>\
 </a:Block>

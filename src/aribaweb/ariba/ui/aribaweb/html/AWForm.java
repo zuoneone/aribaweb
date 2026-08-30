@@ -40,7 +40,8 @@ public class AWForm extends AWComponent implements AWHtmlForm
         BindingNames.target, BindingNames.fragmentIdentifier, BindingNames.omitTags,
         BindingNames.submitFormDefault, // unused?
         BindingNames.autocomplete,
-        BindingNames.id, BindingNames.name, BindingNames.onKeyPress}; // deprecated?
+        BindingNames.id, BindingNames.name, BindingNames.onKeyPress, // deprecated?
+        BindingNames.toolName, BindingNames.toolDescription, BindingNames.toolAutoSubmit};
 
     public AWEncodedString _formElementId;
     public AWEncodedString _hiddenFieldElementId;
@@ -230,6 +231,12 @@ public class AWForm extends AWComponent implements AWHtmlForm
     public Boolean hasFormAction ()
     {
         return hasBinding(BindingNames.action) ? Boolean.TRUE : null;
+    }
+
+    public String toolAutoSubmitAttribute ()
+    {
+        return booleanValueForBinding(BindingNames.toolAutoSubmit) ?
+                BindingNames.awstandalone : null;
     }
 
     // record & playback

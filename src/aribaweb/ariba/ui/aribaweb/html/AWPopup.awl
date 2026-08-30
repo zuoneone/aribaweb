@@ -84,6 +84,10 @@
         When value is false, this popup menu would be readonly like in print mode. Otherwise, it's editable.
     </Binding>
 
+    <Binding key="toolParamDescription" direction="get" type="String" required="$false">
+        WebMCP declarative parameter description rendered as the select's "toolparamdescription" HTML attribute.
+    </Binding>
+
 </a:Api>\
 <a:If ifTrue="$isEditable">\
     <x:BasicScriptFunctions/>\
@@ -93,7 +97,7 @@
             onChange="$onChangeString" onKeyDown="$onKeyDownString"
             onmousewheel="$onMouseWheelString" onMouseDown="ariba.Handlers.AWActionPopupEnabled=true;"
             isSender="$isHiddenFieldSender" invokeAction="$regularItemClicked"
-            formValue="$formValue" otherBindings="$otherBindingsValues">
+            formValue="$formValue" toolparamdescription="$^toolParamDescription" otherBindings="$otherBindingsValues">
         <a:If notEqualNull="$noSelectionString">\
             <option value="$=NoSelectionString">\
                 <a:PrimitiveString value="$noSelectionString"/>\

@@ -46,7 +46,8 @@ public class AWPopup extends AWComponent
         BindingNames.selection, BindingNames.noSelectionString,
         BindingNames.onChange, BindingNames.isRefresh, BindingNames.action,
         BindingNames.disabled, AWPopup.DelayTakeValues,
-        BindingNames.name, BindingNames.size, BindingNames.editable
+        BindingNames.name, BindingNames.size, BindingNames.editable,
+        BindingNames.toolParamDescription
         // is size not used?
     };
 
