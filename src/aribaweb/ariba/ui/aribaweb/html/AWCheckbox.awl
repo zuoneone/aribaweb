@@ -102,13 +102,19 @@
     <Binding key="awname" direction="get" type="String">
         For Winrunner and LoadRunner
     </Binding>
+
+    <Binding key="toolParamDescription" direction="get" type="String" required="$false">
+        WebMCP declarative parameter description rendered as the checkbox input's "toolparamdescription" HTML attribute.
+    </Binding>
     
 </a:Api>\
 
 <a:If ifTrue="$hasAction">\
     <a:ActionCheckbox action="$^action:$null" checked="$checked" awname="$^awname"
-        disabled="$disabledString" otherBindings="$otherBindingsValues" isExternal="$^isExternal"/>\
+        disabled="$disabledString" toolParamDescription="$^toolParamDescription"
+        otherBindings="$otherBindingsValues" isExternal="$^isExternal"/>\
 <a:Else/>\
     <input type="checkbox" name="$^name" disabled="$disabledString" formValue="$formValue" value="1"
-        checked="$checkedString" onClick="$onClick" otherBindings="$otherBindingsValues" id="$env.awinputId"/>\
+        checked="$checkedString" onClick="$onClick" toolparamdescription="$^toolParamDescription"
+        otherBindings="$otherBindingsValues" id="$env.awinputId"/>\
 </a:If>\

@@ -42,10 +42,14 @@
         AWComponent or AWResponse, unless you cannot be sure because you are deferring to another method for the action.
     </Binding>
 
+    <Binding key="toolParamDescription" direction="get" type="String" required="$false">
+        WebMCP declarative parameter description rendered as the radio input's "toolparamdescription" HTML attribute.
+    </Binding>
+
 </a:Api>\
 
 <input type="radio" name="$radioName" elementId="$elementId"
        value="$elementId" formValuesKey="$radioName" formValue="$formValue"
        checked="$isChecked" awname="$^awname" onClick="$onClickString"
        onChange="$^onChange" disabled="$disabled" id="$^id:$env.awinputId"
-       isSender="$isSender" invokeAction="$^action"/>\
+       toolparamdescription="$^toolParamDescription" isSender="$isSender" invokeAction="$^action"/>\

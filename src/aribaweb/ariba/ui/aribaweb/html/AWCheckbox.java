@@ -29,7 +29,7 @@ public class AWCheckbox extends AWComponent
     private static final String[] SupportedBindingNames = {
         BindingNames.type, BindingNames.value, BindingNames.name, BindingNames.checked,
         BindingNames.onClick, BindingNames.isRefresh, BindingNames.action, BindingNames.disabled,
-        BindingNames.awname, BindingNames.isExternal
+        BindingNames.awname, BindingNames.isExternal, BindingNames.toolParamDescription
     };
     public boolean _isDisabled;
 

@@ -83,12 +83,26 @@
         You can specify that the "autocomplete=off" HTML attribute will be
         included in the form HTML tag.
     </Binding>
+
+    <Binding key="toolName" direction="get" type="String" required="$false">
+        WebMCP declarative tool name rendered as the form's "toolname" HTML attribute.
+        Tool names should be stable and match the WebMCP name grammar.
+    </Binding>
+
+    <Binding key="toolDescription" direction="get" type="String" required="$false">
+        WebMCP declarative tool description rendered as the form's "tooldescription" HTML attribute.
+    </Binding>
+
+    <Binding key="toolAutoSubmit" direction="get" type="boolean" default="$false">
+        If true, renders the WebMCP declarative "toolautosubmit" boolean HTML attribute.
+    </Binding>
 </a:Api>\
 
 <a:If ifTrue="$emitTags">\
 <a:MetaTemplateConditional>\
 <form action="$formActionUrl" method="$^method:POST" onSubmit="$^onSubmit"
       target="$frameName" id="$formId" name="$formName"
+      toolname="$^toolName" tooldescription="$^toolDescription" toolautosubmit="$toolAutoSubmitAttribute"
       otherBindings="$otherBindingsValues" class="relocdest" autocomplete="$^autocomplete" bh="AS" _hfa="$hasFormAction">\
     <a:IncludeContent/>\
 

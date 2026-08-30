@@ -59,7 +59,8 @@ public class AWTextField extends AWComponent
         BindingNames.size,
         BindingNames.classBinding,
         BindingNames.placeholder,
-        BindingNames.formValueStrings
+        BindingNames.formValueStrings,
+        BindingNames.toolParamDescription
     };
     public AWEncodedString _elementId;
     private AWEncodedString _textFieldName;

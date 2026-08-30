@@ -47,7 +47,12 @@
         upon initialization, then maintains the state itself.
     </Binding>
 
+    <Binding key="toolParamDescription" direction="get" type="String" required="$false">
+        WebMCP declarative parameter description rendered as the checkbox input's "toolparamdescription" HTML attribute.
+    </Binding>
+
 </a:Api>\
 
 <a:GenericActionTag tagName="input" type="checkbox" value="1" checked="$isChecked"
-    action="$checkboxClicked" awname="$^awname" otherBindings="$otherBindingsValues"/>\
+    action="$checkboxClicked" awname="$^awname" toolparamdescription="$^toolParamDescription"
+    otherBindings="$otherBindingsValues"/>\

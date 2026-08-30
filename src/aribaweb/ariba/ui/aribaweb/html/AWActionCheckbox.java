@@ -31,7 +31,8 @@ public final class AWActionCheckbox extends AWComponent
     private boolean _isExternal;
 
     private static final String[] SupportedBindingNames = {
-        BindingNames.checked, BindingNames.action, BindingNames.isExternal
+        BindingNames.checked, BindingNames.action, BindingNames.isExternal,
+        BindingNames.toolParamDescription
     };
 
     public String[] supportedBindingNames ()
