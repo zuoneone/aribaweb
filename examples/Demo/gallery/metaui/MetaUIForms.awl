@@ -25,32 +25,7 @@
             <a:IncludeComponent name="BasicForm"/>
         </w:Tab>
         <w:Tab label="Webmcp Form">
-            <a:Form action="$createTicket"
-                    toolName="create_ticket"
-                    toolDescription="Create a support ticket"
-                    toolAutoSubmit="$true">
-                <w:FormTable showErrorFlags="$true">
-                    <w:FormRow label="Summary">
-                        <a:TextField name="summary"
-                                     value="$summary"
-                                     toolParamDescription="Short issue summary"/>
-                    </w:FormRow>
-                    <w:FormRow label="Details">
-                        <a:TextArea name="details"
-                                    value="$details"
-                                    toolParamDescription="Detailed issue description"/>
-                    </w:FormRow>
-                </w:FormTable>
-                <br/>
-                <w:TextButton action="$createTicket">Create</w:TextButton>
-                <a:If notEqualNull="$ticketMessage">
-                    <br/>
-                    <br/>
-                    <w:HintMessage>
-                        <a:String value="$ticketMessage"/>
-                    </w:HintMessage>
-                </a:If>
-            </a:Form>
+            <a:IncludeComponent name="WebmcpForm"/>
         </w:Tab>
     </w:TabSet>
 </w:BasicPageWrapper>

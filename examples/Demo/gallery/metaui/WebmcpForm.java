@@ -2,7 +2,7 @@ package gallery.metaui;
 
 import ariba.ui.aribaweb.core.AWComponent;
 
-public final class MetaUIForms extends AWComponent
+public final class WebmcpForm extends AWComponent
 {
     public String summary = "";
     public String details = "";
