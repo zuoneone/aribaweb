@@ -1,20 +1,56 @@
-<w:BasicPageWrapper hasForm="$true">
+<w:BasicPageWrapper hasForm="$false">
     <h1>Forms</h1>
     <w:TabSet>
         <w:Tab label="MetaUI Simple">
-            <a:IncludeComponent name="UserFormSimple"/>
+            <a:Form>
+                <a:IncludeComponent name="UserFormSimple"/>
+            </a:Form>
         </w:Tab>
         <w:Tab label="MetaUI Medium">
-            <a:IncludeComponent name="UserForm"/>
+            <a:Form>
+                <a:IncludeComponent name="UserForm"/>
+            </a:Form>
         </w:Tab>
         <w:Tab label="MetaUI Advanced">
-            <a:IncludeComponent name="UserFormAdvanced"/>
+            <a:Form>
+                <a:IncludeComponent name="UserFormAdvanced"/>
+            </a:Form>
         </w:Tab>
         <w:Tab label="Meta Minimal">
-            <a:IncludeComponent name="MetaSimple"/>
+            <a:Form>
+                <a:IncludeComponent name="MetaSimple"/>
+            </a:Form>
         </w:Tab>
         <w:Tab label="Non-Meta Form">
             <a:IncludeComponent name="BasicForm"/>
+        </w:Tab>
+        <w:Tab label="Webmcp Form">
+            <a:Form action="$createTicket"
+                    toolName="create_ticket"
+                    toolDescription="Create a support ticket"
+                    toolAutoSubmit="$true">
+                <w:FormTable showErrorFlags="$true">
+                    <w:FormRow label="Summary">
+                        <a:TextField name="summary"
+                                     value="$summary"
+                                     toolParamDescription="Short issue summary"/>
+                    </w:FormRow>
+                    <w:FormRow label="Details">
+                        <a:TextArea name="details"
+                                    value="$details"
+                                    toolParamDescription="Detailed issue description"/>
+                    </w:FormRow>
+                </w:FormTable>
+                <br/>
+                <w:TextButton action="$createTicket">Create</w:TextButton>
+                <a:If notEqualNull="$ticketMessage">
+                    <br/>
+                    <br/>
+                    <w:HintMessage>
+                        <a:String value="$ticketMessage"/>
+                    </w:HintMessage>
+                </a:If>
+            </a:Form>
         </w:Tab>
     </w:TabSet>
 </w:BasicPageWrapper>
